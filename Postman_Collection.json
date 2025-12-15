@@ -1,0 +1,711 @@
+{
+	"info": {
+		"_postman_id": "inventory-management-api",
+		"name": "Inventory Management System API",
+		"description": "Complete API collection for Inventory Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('auth_token', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"staff\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('auth_token', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "me"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products?search=&category=&supplier=&minStock=&maxStock=",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products"],
+							"query": [
+								{
+									"key": "search",
+									"value": ""
+								},
+								{
+									"key": "category",
+									"value": ""
+								},
+								{
+									"key": "supplier",
+									"value": ""
+								},
+								{
+									"key": "minStock",
+									"value": ""
+								},
+								{
+									"key": "maxStock",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product by Barcode",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/barcode/:barcode",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products", "barcode", ":barcode"],
+							"variable": [
+								{
+									"key": "barcode",
+									"value": "123456789"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Product (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sku\": \"PROD-001\",\n    \"name\": \"Sample Product\",\n    \"description\": \"This is a sample product\",\n    \"category\": \"Electronics\",\n    \"quantity\": 100,\n    \"reorder_level\": 20,\n    \"price\": 29.99,\n    \"cost\": 15.00,\n    \"supplier_id\": 1,\n    \"barcode\": \"123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products"]
+						}
+					}
+				},
+				{
+					"name": "Update Product (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Product Name\",\n    \"description\": \"Updated description\",\n    \"category\": \"Electronics\",\n    \"quantity\": 150,\n    \"reorder_level\": 25,\n    \"price\": 34.99,\n    \"cost\": 18.00,\n    \"supplier_id\": 1,\n    \"barcode\": \"123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/products/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Product (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/products/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Suppliers",
+			"item": [
+				{
+					"name": "Get All Suppliers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/suppliers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "suppliers"]
+						}
+					}
+				},
+				{
+					"name": "Get Supplier by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/suppliers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Supplier",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ABC Suppliers Inc.\",\n    \"contact_person\": \"John Doe\",\n    \"email\": \"john@abcsuppliers.com\",\n    \"phone\": \"+1-555-0123\",\n    \"address\": \"123 Main St, City, State 12345\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/suppliers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "suppliers"]
+						}
+					}
+				},
+				{
+					"name": "Update Supplier",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ABC Suppliers Inc. (Updated)\",\n    \"contact_person\": \"Jane Doe\",\n    \"email\": \"jane@abcsuppliers.com\",\n    \"phone\": \"+1-555-0124\",\n    \"address\": \"456 Oak Ave, City, State 12345\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/suppliers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Supplier",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/suppliers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Purchase Orders",
+			"item": [
+				{
+					"name": "Get All Purchase Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/purchase-orders",
+							"host": ["{{base_url}}"],
+							"path": ["api", "purchase-orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Purchase Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/purchase-orders/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "purchase-orders", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Purchase Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"supplier_id\": 1,\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 50,\n            \"unit_price\": 15.00\n        },\n        {\n            \"product_id\": 2,\n            \"quantity\": 30,\n            \"unit_price\": 20.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/purchase-orders",
+							"host": ["{{base_url}}"],
+							"path": ["api", "purchase-orders"]
+						}
+					}
+				},
+				{
+					"name": "Update Purchase Order Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"received\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/purchase-orders/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "purchase-orders", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Sales Orders",
+			"item": [
+				{
+					"name": "Get All Sales Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales-orders",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales-orders"]
+						}
+					}
+				},
+				{
+					"name": "Get Sales Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/sales-orders/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales-orders", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Sales Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer_name\": \"John Customer\",\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"quantity\": 5,\n            \"unit_price\": 29.99\n        },\n        {\n            \"product_id\": 2,\n            \"quantity\": 3,\n            \"unit_price\": 39.99\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales-orders",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales-orders"]
+						}
+					}
+				},
+				{
+					"name": "Update Sales Order Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"completed\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales-orders/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sales-orders", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "Stock Levels Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/stock-levels",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "stock-levels"]
+						}
+					}
+				},
+				{
+					"name": "Sales Trends Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/sales-trends?days=30",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "sales-trends"],
+							"query": [
+								{
+									"key": "days",
+									"value": "30"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Inventory Turnover Report",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/inventory-turnover",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "inventory-turnover"]
+						}
+					}
+				},
+				{
+					"name": "Low Stock Alerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/low-stock-alerts",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "low-stock-alerts"]
+						}
+					}
+				},
+				{
+					"name": "Top Selling Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/top-selling?days=30&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "top-selling"],
+							"query": [
+								{
+									"key": "days",
+									"value": "30"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Algorithms",
+			"item": [
+				{
+					"name": "Auto Reorder",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/algorithms/auto-reorder",
+							"host": ["{{base_url}}"],
+							"path": ["api", "algorithms", "auto-reorder"]
+						}
+					}
+				},
+				{
+					"name": "Demand Forecast",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/algorithms/demand-forecast/:productId?days=30",
+							"host": ["{{base_url}}"],
+							"path": ["api", "algorithms", "demand-forecast", ":productId"],
+							"query": [
+								{
+									"key": "days",
+									"value": "30"
+								}
+							],
+							"variable": [
+								{
+									"key": "productId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Inventory Valuation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/algorithms/inventory-valuation/:productId?method=weighted_average",
+							"host": ["{{base_url}}"],
+							"path": ["api", "algorithms", "inventory-valuation", ":productId"],
+							"query": [
+								{
+									"key": "method",
+									"value": "weighted_average",
+									"description": "Options: fifo, lifo, weighted_average"
+								}
+							],
+							"variable": [
+								{
+									"key": "productId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Inventory Optimization",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/algorithms/optimize-inventory?days=90",
+							"host": ["{{base_url}}"],
+							"path": ["api", "algorithms", "optimize-inventory"],
+							"query": [
+								{
+									"key": "days",
+									"value": "90"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Algorithms Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/algorithms/summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "algorithms", "summary"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
+

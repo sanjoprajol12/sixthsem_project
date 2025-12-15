@@ -1,0 +1,71 @@
+.purchase-orders {
+  padding: 20px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.status-received {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.status-cancelled {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.large-modal {
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.order-details {
+  margin-top: 20px;
+}
+
+.order-info {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.order-info p {
+  margin: 5px 0;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.form-section {
+  margin: 20px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+

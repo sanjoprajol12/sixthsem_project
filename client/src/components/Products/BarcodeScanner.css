@@ -1,0 +1,65 @@
+.scanner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.scanner-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+}
+
+.scanner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.scanner-header h3 {
+  margin: 0;
+}
+
+.scanner-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.scanner-header button:hover {
+  color: #000;
+}
+
+.scanner-content {
+  text-align: center;
+}
+
+.scanner-placeholder {
+  padding: 40px;
+}
+
+.scanner-view {
+  width: 100%;
+  min-height: 300px;
+  background: #000;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+#scanner {
+  width: 100%;
+  height: 100%;
+}
+
