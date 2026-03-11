@@ -21,6 +21,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/sales-orders', require('./routes/salesOrders'));
+app.use('/api/categories', require('./routes/categories'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/algorithms', require('./routes/algorithms'));
 

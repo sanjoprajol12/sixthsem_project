@@ -16,6 +16,11 @@ const purchaseOrderItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   total_price: {
     type: Number,
     required: true,

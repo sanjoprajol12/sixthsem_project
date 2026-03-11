@@ -51,7 +51,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <h1>Dashboard</h1>
-      
+
       <div className="stats-grid">
         <div className="stat-card">
           <h3>Total Products</h3>
@@ -91,7 +91,7 @@ const Dashboard = () => {
               </thead>
               <tbody>
                 {lowStockAlerts.map(item => (
-                  <tr key={item.id}>
+                  <tr key={item._id}>
                     <td>{item.sku}</td>
                     <td>{item.name}</td>
                     <td className="warning-text">{item.quantity}</td>

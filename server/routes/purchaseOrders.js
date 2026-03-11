@@ -80,12 +80,16 @@ router.post('/', authenticateToken, [
     
     let totalAmount = 0;
     const orderItems = items.map(item => {
-      const totalPrice = item.quantity * item.unit_price;
+      const discount = item.discount || 0;
+      const gross = item.quantity * item.unit_price;
+      const discountAmount = (gross * discount) / 100;
+      const totalPrice = gross - discountAmount;
       totalAmount += totalPrice;
       return {
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        discount,
         total_price: totalPrice
       };
     });

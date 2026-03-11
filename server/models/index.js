@@ -6,6 +6,7 @@ module.exports = {
   PurchaseOrder: require('./PurchaseOrder'),
   SalesOrder: require('./SalesOrder'),
   InventoryTransaction: require('./InventoryTransaction'),
-  SalesHistory: require('./SalesHistory')
+  SalesHistory: require('./SalesHistory'),
+  Category: require('./Category')
 };
 

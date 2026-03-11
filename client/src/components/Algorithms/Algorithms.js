@@ -8,6 +8,7 @@ const Algorithms = () => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [algorithmResults, setAlgorithmResults] = useState(null);
+  const [optimizationResults, setOptimizationResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
 
@@ -19,6 +20,8 @@ const Algorithms = () => {
   useEffect(() => {
     if (activeTab === 'demand-forecast' && selectedProduct) {
       fetchDemandForecast();
+    } else if (activeTab === 'inventory-optimization') {
+      fetchInventoryOptimization();
     } else {
       setAlgorithmResults(null);
     }
@@ -51,6 +54,18 @@ const Algorithms = () => {
       fetchSummary();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error generating auto reorder');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInventoryOptimization = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('/api/algorithms/inventory-optimization?days=60');
+      setOptimizationResults(res.data);
+    } catch (error) {
+      toast.error('Error fetching inventory optimization insights');
     } finally {
       setLoading(false);
     }
@@ -107,6 +122,12 @@ const Algorithms = () => {
         >
           Demand Forecasting
         </button>
+        <button
+          className={activeTab === 'inventory-optimization' ? 'active' : ''}
+          onClick={() => setActiveTab('inventory-optimization')}
+        >
+          Inventory Optimization
+        </button>
       </div>
 
       <div className="algorithm-content">
@@ -117,30 +138,63 @@ const Algorithms = () => {
             <button className="btn-primary" onClick={handleAutoReorder} disabled={loading}>
               {loading ? 'Processing...' : 'Generate Auto Reorder'}
             </button>
-            
+
             {algorithmResults && (
               <div className="results">
                 <h3>Results</h3>
                 <p>{algorithmResults.message || 'No results available'}</p>
                 {algorithmResults.orders && algorithmResults.orders.length > 0 && (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Order Number</th>
-                        <th>Supplier ID</th>
-                        <th>Items Count</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {algorithmResults.orders.map(order => (
-                        <tr key={order.id || order.order_number}>
-                          <td>{order.order_number || 'N/A'}</td>
-                          <td>{order.supplier_id || 'N/A'}</td>
-                          <td>{order.items?.length || 0}</td>
+                  <div>
+                    <h4>Created Purchase Orders</h4>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Order Number</th>
+                          <th>Supplier ID</th>
+                          <th>Items Count</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {algorithmResults.orders.map(order => (
+                          <tr key={order.id || order.order_number}>
+                            <td>{order.order_number || 'N/A'}</td>
+                            <td>{order.supplier_id || 'N/A'}</td>
+                            <td>{order.items?.length || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {algorithmResults.skipped && algorithmResults.skipped.length > 0 && (
+                  <div style={{ marginTop: '20px' }}>
+                    <h4 style={{ color: '#ff9800' }}>⚠️ Skipped Products (No Supplier Assigned)</h4>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>Product Name</th>
+                          <th>Current Stock</th>
+                          <th>Reorder Level</th>
+                          <th>Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {algorithmResults.skipped.map(product => (
+                          <tr key={product.product_id}>
+                            <td>{product.sku}</td>
+                            <td>{product.name}</td>
+                            <td>{product.quantity}</td>
+                            <td>{product.reorder_level}</td>
+                            <td>{product.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p style={{ marginTop: '10px', color: '#666' }}>
+                      Please assign suppliers to these products in the Products page to enable automatic reordering.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -167,7 +221,7 @@ const Algorithms = () => {
             </div>
 
             {loading && <div className="loading">Calculating forecast...</div>}
-            
+
             {algorithmResults && (
               <div className="results">
                 <h3>Forecast Results</h3>
@@ -204,6 +258,71 @@ const Algorithms = () => {
                       </div>
                     )}
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'inventory-optimization' && (
+          <div className="algorithm-section">
+            <h2>Inventory Optimization Algorithm</h2>
+            <p>
+              Analyze sales and stock levels to identify slow-moving, overstocked, and
+              understocked products, with suggested reorder levels.
+            </p>
+
+            {loading && <div className="loading">Analyzing inventory...</div>}
+
+            {optimizationResults && (
+              <div className="results">
+                <h3>Summary</h3>
+                <p>
+                  Products analyzed:{' '}
+                  <strong>{optimizationResults.summary?.products_analyzed || 0}</strong> | Slow
+                  moving:{' '}
+                  <strong>{optimizationResults.summary?.slow_moving_products || 0}</strong> |
+                  Overstocked:{' '}
+                  <strong>{optimizationResults.summary?.overstocked_products || 0}</strong> |
+                  Understocked:{' '}
+                  <strong>{optimizationResults.summary?.understocked_products || 0}</strong>
+                </p>
+
+                <h3 style={{ marginTop: '20px' }}>Recommendations</h3>
+                {optimizationResults.recommendations &&
+                optimizationResults.recommendations.length > 0 ? (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Product</th>
+                        <th>Current Stock</th>
+                        <th>Reorder Level</th>
+                        <th>Suggested Reorder</th>
+                        <th>Avg Daily Sales</th>
+                        <th>Days of Cover</th>
+                        <th>Demand</th>
+                        <th>Stock Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {optimizationResults.recommendations.map((item) => (
+                        <tr key={item.product_id}>
+                          <td>{item.sku}</td>
+                          <td>{item.name}</td>
+                          <td>{item.current_stock}</td>
+                          <td>{item.reorder_level}</td>
+                          <td>{item.suggested_reorder_level}</td>
+                          <td>{item.avg_daily_sales}</td>
+                          <td>{item.days_of_cover ?? '-'}</td>
+                          <td>{item.demand_classification}</td>
+                          <td>{item.stock_classification}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>No recommendations available.</p>
                 )}
               </div>
             )}

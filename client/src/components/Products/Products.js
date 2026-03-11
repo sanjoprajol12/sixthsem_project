@@ -9,9 +9,11 @@ const Products = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showFormScanner, setShowFormScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ category: '', supplier: '', minStock: '', maxStock: '' });
@@ -31,6 +33,7 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchSuppliers();
+    fetchCategories();
   }, [filters, searchTerm]);
 
   const fetchProducts = async () => {
@@ -57,6 +60,15 @@ const Products = () => {
       setSuppliers(res.data);
     } catch (error) {
       // Handle error
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get('/api/categories');
+      setCategoriesList(res.data);
+    } catch (error) {
+      // ignore
     }
   };
 
@@ -134,7 +146,18 @@ const Products = () => {
     setShowScanner(false);
   };
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const handleFormBarcodeScanned = (barcode) => {
+    setFormData((prev) => ({
+      ...prev,
+      barcode
+    }));
+    setShowFormScanner(false);
+    toast.success('Barcode captured for product');
+  };
+
+  const categories = categoriesList.length
+    ? categoriesList.map((c) => c.name)
+    : [...new Set(products.map((p) => p.category).filter(Boolean))];
 
   return (
     <div className="products">
@@ -194,6 +217,12 @@ const Products = () => {
         <BarcodeScanner
           onScan={handleBarcodeScanned}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+      {showFormScanner && (
+        <BarcodeScanner
+          onScan={handleFormBarcodeScanned}
+          onClose={() => setShowFormScanner(false)}
         />
       )}
 
@@ -284,6 +313,14 @@ const Products = () => {
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                   />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ marginTop: '8px' }}
+                    onClick={() => setShowFormScanner(true)}
+                  >
+                    Scan from device
+                  </button>
                 </div>
               </div>
               <div className="form-row">

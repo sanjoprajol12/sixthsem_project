@@ -27,9 +27,10 @@ const Navbar = () => {
       <ul className={`navbar-menu ${isMobileMenuOpen ? 'active' : ''}`}>
         <li><Link to="/" className={isActive('/') ? 'active' : ''}>Dashboard</Link></li>
         <li><Link to="/products" className={isActive('/products') ? 'active' : ''}>Products</Link></li>
+        <li><Link to="/categories" className={isActive('/categories') ? 'active' : ''}>Categories</Link></li>
         <li><Link to="/suppliers" className={isActive('/suppliers') ? 'active' : ''}>Suppliers</Link></li>
-        <li><Link to="/purchase-orders" className={isActive('/purchase-orders') ? 'active' : ''}>Purchase Orders</Link></li>
-        <li><Link to="/sales-orders" className={isActive('/sales-orders') ? 'active' : ''}>Sales Orders</Link></li>
+        <li><Link to="/purchase-orders" className={isActive('/purchase-orders') ? 'active' : ''}>Purchase Order</Link></li>
+        <li><Link to="/sales-orders" className={isActive('/sales-orders') ? 'active' : ''}>Sales Order</Link></li>
         <li><Link to="/reports" className={isActive('/reports') ? 'active' : ''}>Reports</Link></li>
         <li><Link to="/algorithms" className={isActive('/algorithms') ? 'active' : ''}>Algorithms</Link></li>
         <li className="user-info">

@@ -11,7 +11,7 @@ const SalesOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [formData, setFormData] = useState({
     customer_name: '',
-    items: [{ product_id: '', quantity: 1, unit_price: 0 }]
+    items: [{ product_id: '', quantity: 1, unit_price: 0, discount: 0 }]
   });
 
   useEffect(() => {
@@ -77,7 +77,7 @@ const SalesOrders = () => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { product_id: '', quantity: 1, unit_price: 0 }]
+      items: [...formData.items, { product_id: '', quantity: 1, unit_price: 0, discount: 0 }]
     });
   };
 
@@ -90,7 +90,11 @@ const SalesOrders = () => {
 
   const updateItem = (index, field, value) => {
     const newItems = [...formData.items];
-    newItems[index][field] = field === 'quantity' || field === 'unit_price' ? parseFloat(value) || 0 : value;
+    if (field === 'quantity' || field === 'unit_price' || field === 'discount') {
+      newItems[index][field] = parseFloat(value) || 0;
+    } else {
+      newItems[index][field] = value;
+    }
     
     // Auto-fill unit price when product is selected
     if (field === 'product_id' && value) {
@@ -110,7 +114,7 @@ const SalesOrders = () => {
   const resetForm = () => {
     setFormData({
       customer_name: '',
-      items: [{ product_id: '', quantity: 1, unit_price: 0 }]
+      items: [{ product_id: '', quantity: 1, unit_price: 0, discount: 0 }]
     });
   };
 
@@ -197,8 +201,8 @@ const SalesOrders = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOrder.items?.map(item => (
-                      <tr key={item.id}>
+                    {selectedOrder.items?.map((item, index) => (
+                      <tr key={item._id || index}>
                         <td>{item.product_name}</td>
                         <td>{item.sku}</td>
                         <td>{item.quantity}</td>
@@ -252,7 +256,7 @@ const SalesOrders = () => {
                       </select>
                       <input
                         type="number"
-                        placeholder="Quantity"
+                        placeholder="Qty"
                         value={item.quantity}
                         onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                         required
@@ -266,6 +270,15 @@ const SalesOrders = () => {
                         onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
                         required
                         min="0"
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Discount %"
+                        value={item.discount}
+                        onChange={(e) => updateItem(index, 'discount', e.target.value)}
+                        min="0"
+                        max="100"
                       />
                       <button type="button" className="btn-delete" onClick={() => removeItem(index)}>
                         Remove

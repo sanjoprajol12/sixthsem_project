@@ -12,11 +12,17 @@ import PurchaseOrders from './components/PurchaseOrders/PurchaseOrders';
 import SalesOrders from './components/SalesOrders/SalesOrders';
 import Reports from './components/Reports/Reports';
 import Algorithms from './components/Algorithms/Algorithms';
+import Categories from './components/Categories/Categories';
 import Navbar from './components/Layout/Navbar';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="app-loading">Loading...</div>;
+  }
+
   return user ? children : <Navigate to="/login" />;
 };
 
@@ -37,6 +43,7 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/products" element={<Products />} />
+                      <Route path="/categories" element={<Categories />} />
                       <Route path="/suppliers" element={<Suppliers />} />
                       <Route path="/purchase-orders" element={<PurchaseOrders />} />
                       <Route path="/sales-orders" element={<SalesOrders />} />
