@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+import ChangePassword from './components/Auth/ChangePassword';
 import Dashboard from './components/Dashboard/Dashboard';
 import Products from './components/Products/Products';
 import Suppliers from './components/Suppliers/Suppliers';
@@ -51,6 +52,7 @@ function App() {
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/algorithms" element={<Algorithms />} />
                       <Route path="/users" element={<Users />} />
+                      <Route path="/change-password" element={<ChangePassword />} />
                     </Routes>
                   </div>
                 </PrivateRoute>

@@ -45,34 +45,17 @@ router.post(
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create user (always staff; admin is seeded)
+      // Create user (always staff; admin is seeded) in pending status
       const user = await User.create({
         username,
         email,
         password: hashedPassword,
         role: 'staff',
+        status: 'pending',
       });
 
-      const token = jwt.sign(
-        {
-          id: user._id.toString(),
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
       res.status(201).json({
-        message: 'User registered successfully',
-        token,
-        user: {
-          id: user._id.toString(),
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
+        message: 'Registration successful. Your account is pending admin approval.',
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -110,6 +93,14 @@ router.post(
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (user.status === 'pending') {
+        return res.status(403).json({ error: 'Account pending approval by admin' });
+      }
+
+      if (user.status === 'disabled') {
+        return res.status(403).json({ error: 'Account is disabled. Contact admin.' });
       }
 
       const token = jwt.sign(

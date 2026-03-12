@@ -41,7 +41,8 @@ const seedData = async () => {
       username: 'admin',
       email: 'admin@inventory.com',
       password: defaultPassword,
-      role: 'admin'
+      role: 'admin',
+      status: 'active'
     });
 
     console.log('Admin user created');

@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import './BarcodeScanner.css';
 
 const BarcodeScanner = ({ onScan, onClose }) => {
   const scannerRef = useRef(null);
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState(null);
+  const [lastCode, setLastCode] = useState('');
   const html5QrCodeRef = useRef(null);
 
   useEffect(() => {
@@ -19,9 +20,28 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
+            // Explicitly enable 1D barcodes like UPC / EAN / Code128
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.QR_CODE,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.ITF,
+            ],
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
+            },
           },
           (decodedText) => {
-            onScan(decodedText);
+            setLastCode(decodedText);
+            try {
+              onScan(decodedText);
+            } catch (e) {
+              console.error('onScan handler error', e);
+            }
             stopScanning();
           },
           () => {
@@ -89,6 +109,9 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         </div>
         <div className="scanner-content">
           {error && <p className="scanner-error">{error}</p>}
+          {lastCode && !error && (
+            <p className="scanner-info">Detected code: {lastCode}</p>
+          )}
           <div id="scanner" ref={scannerRef} className="scanner-view"></div>
           {scanning && (
             <button className="btn-secondary" onClick={stopScanning} style={{ marginTop: '10px' }}>

@@ -79,6 +79,9 @@ const Navbar = () => {
           <span>
             {user?.username} ({user?.role})
           </span>
+          <Link to="/change-password" className={isActive('/change-password') ? 'active' : ''}>
+            Change Password
+          </Link>
           <button onClick={handleLogout}>Logout</button>
         </li>
       </ul>
