@@ -1,0 +1,48 @@
+.users {
+  padding: 20px;
+}
+
+.users-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+.user-form,
+.users-list {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.user-form h3,
+.users-list h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.user-form .form-group {
+  margin-bottom: 12px;
+}
+
+.user-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.user-form input,
+.user-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+@media (max-width: 900px) {
+  .users-layout {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -1,11 +1,11 @@
 const express = require('express');
 const { Product, Supplier, PurchaseOrder, SalesHistory } = require('../models');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Automated Reordering Algorithm
-router.post('/auto-reorder', authenticateToken, async (req, res) => {
+// Automated Reordering Algorithm (admin only - creates POs)
+router.post('/auto-reorder', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Find products below reorder level
     const products = await Product.find({

@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const { PurchaseOrder, Product, Supplier, User, InventoryTransaction } = require('../models');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -64,7 +64,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create purchase order
+// Create purchase order (staff can create; admin approves via status)
 router.post('/', authenticateToken, [
   body('supplier_id').notEmpty().withMessage('Supplier ID is required'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required')
@@ -99,6 +99,7 @@ router.post('/', authenticateToken, [
       supplier_id,
       total_amount: totalAmount,
       created_by: req.user.id,
+      status: 'pending',
       items: orderItems
     });
 
@@ -113,8 +114,8 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Update purchase order status
-router.put('/:id/status', authenticateToken, async (req, res) => {
+// Update purchase order status (admin only)
+router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {

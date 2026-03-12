@@ -140,7 +140,13 @@ const PurchaseOrders = () => {
     <div className="purchase-orders">
       <div className="page-header">
         <h1>Purchase Orders</h1>
-        <button className="btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            resetForm();
+            setShowModal(true);
+          }}
+        >
           Create Purchase Order
         </button>
       </div>
@@ -170,11 +176,20 @@ const PurchaseOrders = () => {
                 <td>{order.created_by_name || 'N/A'}</td>
                 <td>{new Date(order.created_at).toLocaleDateString()}</td>
                 <td>
-                  <button className="btn-edit" onClick={() => { fetchOrderDetails(order.id); setShowModal(true); }}>
+                  <button
+                    className="btn-edit"
+                    onClick={() => {
+                      fetchOrderDetails(order.id);
+                      setShowModal(true);
+                    }}
+                  >
                     View
                   </button>
-                  {order.status === 'pending' && (
-                    <button className="btn-primary" onClick={() => handleStatusUpdate(order.id, 'received')}>
+                  {order.status === 'pending' && user?.role === 'admin' && (
+                    <button
+                      className="btn-primary"
+                      onClick={() => handleStatusUpdate(order.id, 'received')}
+                    >
                       Mark Received
                     </button>
                   )}

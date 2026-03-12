@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const { SalesOrder, Product, User, SalesHistory } = require('../models');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -141,8 +141,8 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Update sales order status
-router.put('/:id/status', authenticateToken, async (req, res) => {
+// Update sales order status (admin only)
+router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {

@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const { Supplier } = require('../models');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -49,8 +49,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create supplier
-router.post('/', authenticateToken, [
+// Create supplier (admin only)
+router.post('/', authenticateToken, requireAdmin, [
   body('name').notEmpty().withMessage('Name is required'),
   body('email').optional().isEmail().withMessage('Valid email is required')
 ], async (req, res) => {
@@ -77,8 +77,8 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Update supplier
-router.put('/:id', authenticateToken, async (req, res) => {
+// Update supplier (admin only)
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -110,8 +110,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete supplier
-router.delete('/:id', authenticateToken, async (req, res) => {
+// Delete supplier (admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
