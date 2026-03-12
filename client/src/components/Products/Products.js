@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import BarcodeScanner from './BarcodeScanner';
+import BarcodeGenerator from './BarcodeGenerator';
 import './Products.css';
 
 const Products = () => {
@@ -300,11 +301,17 @@ const Products = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label>Category</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  />
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>Barcode</label>
@@ -321,6 +328,10 @@ const Products = () => {
                   >
                     Scan from device
                   </button>
+                  <BarcodeGenerator
+                    value={formData.barcode}
+                    onChange={(code) => setFormData({ ...formData, barcode: code })}
+                  />
                 </div>
               </div>
               <div className="form-row">

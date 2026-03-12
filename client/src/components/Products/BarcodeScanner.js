@@ -4,7 +4,8 @@ import './BarcodeScanner.css';
 
 const BarcodeScanner = ({ onScan, onClose }) => {
   const scannerRef = useRef(null);
-  const [scanning, setScanning] = useState(false);
+  const [scanning, setScanning] = useState(true);
+  const [error, setError] = useState(null);
   const html5QrCodeRef = useRef(null);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           { facingMode: 'environment' },
           {
             fps: 10,
-            qrbox: { width: 250, height: 250 }
+            qrbox: { width: 250, height: 250 },
           },
           (decodedText) => {
             onScan(decodedText);
@@ -29,6 +30,9 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         )
         .catch((err) => {
           console.error('Error starting scanner:', err);
+          setError(
+            'Unable to access camera. Make sure your browser has camera permission and you are using a device with a camera.'
+          );
           setScanning(false);
           html5QrCodeRef.current = null;
         });
@@ -37,6 +41,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     return () => {
       stopScanning();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning]);
 
   const stopScanning = () => {
@@ -70,10 +75,6 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     }
   };
 
-  const startScanning = () => {
-    setScanning(true);
-  };
-
   const handleClose = () => {
     stopScanning();
     onClose();
@@ -87,21 +88,19 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           <button onClick={handleClose}>×</button>
         </div>
         <div className="scanner-content">
-          {!scanning ? (
-            <div className="scanner-placeholder">
-              <p>Click the button below to start scanning</p>
-              <button className="btn-primary" onClick={startScanning}>
-                Start Scanner
-              </button>
-            </div>
-          ) : (
-            <div id="scanner" ref={scannerRef} className="scanner-view"></div>
-          )}
+          {error && <p className="scanner-error">{error}</p>}
+          <div id="scanner" ref={scannerRef} className="scanner-view"></div>
           {scanning && (
             <button className="btn-secondary" onClick={stopScanning} style={{ marginTop: '10px' }}>
               Stop Scanner
             </button>
           )}
+        </div>
+        <div className="scanner-footer">
+          <p>
+            For best results, open this app directly on your phone&apos;s browser and point the phone
+            camera at the barcode.
+          </p>
         </div>
       </div>
     </div>

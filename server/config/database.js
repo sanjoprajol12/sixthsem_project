@@ -7,14 +7,19 @@ let isConnected = false;
 const initDatabase = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/InventoryDb';
-    
+
     await mongoose.connect(mongoURI);
 
     isConnected = true;
     console.log('Connected to MongoDB database');
-    
-    // Seed initial data
-    await seedData();
+
+    // Seed initial data only in development or when explicitly enabled
+    const shouldSeed =
+      process.env.NODE_ENV === 'development' || process.env.SEED_DB === 'true';
+
+    if (shouldSeed) {
+      await seedData();
+    }
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);
     process.exit(1);

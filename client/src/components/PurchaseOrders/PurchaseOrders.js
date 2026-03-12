@@ -14,7 +14,7 @@ const PurchaseOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [formData, setFormData] = useState({
     supplier_id: '',
-    items: [{ product_id: '', quantity: 1, unit_price: 0, discount: 0 }]
+    items: [{ product_id: '', quantity: 1, unit_price: 0 }]
   });
 
   useEffect(() => {
@@ -123,7 +123,7 @@ const PurchaseOrders = () => {
   const resetForm = () => {
     setFormData({
       supplier_id: '',
-      items: [{ product_id: '', quantity: 1, unit_price: 0, discount: 0 }]
+      items: [{ product_id: '', quantity: 1, unit_price: 0 }]
     });
   };
 
@@ -254,48 +254,59 @@ const PurchaseOrders = () => {
                     <button type="button" className="btn-secondary" onClick={addItem}>Add Item</button>
                   </div>
                   {formData.items.map((item, index) => (
-                    <div key={index} className="item-row">
-                      <select
-                        value={item.product_id}
-                        onChange={(e) => updateItem(index, 'product_id', e.target.value)}
-                        required
-                      >
-                        <option value="">Select Product</option>
-                        {products.map(prod => (
-                          <option key={prod.id} value={prod.id}>{prod.name} ({prod.sku})</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                        required
-                        min="1"
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Unit Cost"
-                        value={item.unit_price}
-                        onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
-                        required
-                        min="0"
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Discount %"
-                        value={item.discount}
-                        onChange={(e) => updateItem(index, 'discount', e.target.value)}
-                        min="0"
-                        max="100"
-                      />
-                      <button type="button" className="btn-delete" onClick={() => removeItem(index)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+  <div key={index} className="item-row">
+
+    <div className="field">
+      <label>Product</label>
+      <select
+        value={item.product_id}
+        onChange={(e) => updateItem(index, 'product_id', e.target.value)}
+        required
+      >
+        <option value="">Select Product</option>
+        {products.map(prod => (
+          <option key={prod.id} value={prod.id}>
+            {prod.name} ({prod.sku})
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="field">
+      <label>Quantity</label>
+      <input
+        type="number"
+        placeholder="Enter quantity"
+        value={item.quantity}
+        onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+        required
+        min="1"
+      />
+    </div>
+
+    <div className="field">
+      <label>Unit Price</label>
+      <input
+        type="number"
+        step="0.01"
+        placeholder="Enter price"
+        value={item.unit_price}
+        onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
+        required
+        min="0"
+      />
+    </div>
+
+    <button
+      type="button"
+      className="btn-delete"
+      onClick={() => removeItem(index)}
+    >
+      Remove
+    </button>
+
+  </div>
+))}
                 </div>
 
                 <div className="modal-actions">
