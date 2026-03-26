@@ -58,6 +58,32 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Get products by barcode
+// NOTE: Must be defined before "/:id" to avoid route conflicts.
+router.get('/barcode/:barcode', authenticateToken, async (req, res) => {
+  try {
+    const product = await Product.findOne({ barcode: req.params.barcode })
+      .populate('supplier_id', 'name');
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const productObj = product.toObject();
+    const formattedProduct = {
+      ...productObj,
+      id: productObj._id,
+      supplier_name: product.supplier_id?.name || null,
+      supplier_id: product.supplier_id?._id?.toString() || null
+    };
+
+    res.json(formattedProduct);
+  } catch (error) {
+    console.error('Get product by barcode error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // Get product by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -189,31 +215,6 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ error: 'Error deleting product' });
-  }
-});
-
-// Get products by barcode
-router.get('/barcode/:barcode', authenticateToken, async (req, res) => {
-  try {
-    const product = await Product.findOne({ barcode: req.params.barcode })
-      .populate('supplier_id', 'name');
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    const productObj = product.toObject();
-    const formattedProduct = {
-      ...productObj,
-      id: productObj._id,
-      supplier_name: product.supplier_id?.name || null,
-      supplier_id: product.supplier_id?._id?.toString() || null
-    };
-
-    res.json(formattedProduct);
-  } catch (error) {
-    console.error('Get product by barcode error:', error);
-    res.status(500).json({ error: 'Database error' });
   }
 });
 

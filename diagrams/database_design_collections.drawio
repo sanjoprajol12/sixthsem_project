@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" modified="2026-03-26T00:00:00.000Z" agent="Cursor" version="24.8.0" type="device">
+  <diagram id="dbdesign" name="Database Design (Collections)">
+    <mxGraphModel dx="60" dy="50" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="0" page="1" pageScale="1" pageWidth="1400" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="Database Design - MongoDB Collections (MERN IMS)" style="text;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="20" width="960" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Users -->
+        <mxCell id="10" value="Users" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="310" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="username (unique)&lt;br/&gt;email (unique)&lt;br/&gt;password (hashed)&lt;br/&gt;role (admin|staff)&lt;br/&gt;status (pending|active|disabled)&lt;br/&gt;created_at" style="whiteSpace=wrap;html=1;fontSize=12;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="270" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Products -->
+        <mxCell id="20" value="Products" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="310" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="sku (unique)&lt;br/&gt;name&lt;br/&gt;description&lt;br/&gt;category (string)&lt;br/&gt;quantity (>=0)&lt;br/&gt;reorder_level (>=0)&lt;br/&gt;price&lt;br/&gt;cost&lt;br/&gt;supplier_id (FK)&lt;br/&gt;barcode&lt;br/&gt;created_at&lt;br/&gt;updated_at" style="whiteSpace=wrap;html=1;fontSize=11;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="270" height="240" as="geometry"/>
+        </mxCell>
+
+        <!-- Suppliers -->
+        <mxCell id="30" value="Suppliers" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="400" y="90" width="310" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="name&lt;br/&gt;contact_person&lt;br/&gt;email&lt;br/&gt;phone&lt;br/&gt;address&lt;br/&gt;created_at" style="whiteSpace=wrap;html=1;fontSize=12;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="420" y="160" width="270" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- Categories -->
+        <mxCell id="40" value="Categories" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="400" y="300" width="310" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="41" value="name (unique)&lt;br/&gt;description&lt;br/&gt;created_at&lt;br/&gt;updated_at" style="whiteSpace=wrap;html=1;fontSize=12;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="420" y="370" width="270" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- PurchaseOrders -->
+        <mxCell id="50" value="PurchaseOrders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="90" width="600" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="51" value="order_number (unique)&lt;br/&gt;supplier_id (FK)&lt;br/&gt;status (pending|processing|received|cancelled)&lt;br/&gt;total_amount&lt;br/&gt;created_by (FK -> Users)&lt;br/&gt;items[]: {product_id, quantity, unit_price, discount, total_price}&lt;br/&gt;created_at&lt;br/&gt;updated_at" style="whiteSpace=wrap;html=1;fontSize=11;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="780" y="160" width="560" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- SalesOrders -->
+        <mxCell id="60" value="SalesOrders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="360" width="600" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="61" value="order_number (unique)&lt;br/&gt;customer_name&lt;br/&gt;status (pending|processing|shipped|completed|cancelled)&lt;br/&gt;total_amount&lt;br/&gt;created_by (FK -> Users)&lt;br/&gt;items[]: {product_id, quantity, unit_price, discount, total_price}&lt;br/&gt;created_at&lt;br/&gt;updated_at" style="whiteSpace=wrap;html=1;fontSize=11;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="780" y="430" width="560" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- SalesHistory -->
+        <mxCell id="70" value="SalesHistory" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="630" width="600" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="71" value="product_id (FK -> Products)&lt;br/&gt;quantity&lt;br/&gt;sale_date&lt;br/&gt;unit_price&lt;br/&gt;sales_order_id (optional FK -> SalesOrders)" style="whiteSpace=wrap;html=1;fontSize=12;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="780" y="700" width="560" height="120" as="geometry"/>
+        </mxCell>
+
+        <!-- InventoryTransactions -->
+        <mxCell id="80" value="InventoryTransactions" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="650" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="81" value="product_id (FK -> Products)&lt;br/&gt;transaction_type (purchase|sale|adjustment)&lt;br/&gt;quantity&lt;br/&gt;unit_cost&lt;br/&gt;order_id (optional)&lt;br/&gt;created_at" style="whiteSpace=wrap;html=1;fontSize=12;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="630" width="610" height="170" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+
