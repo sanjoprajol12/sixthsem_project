@@ -1,10 +1,36 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
-const { Product, Supplier } = require('../models');
+const { Product, Supplier, Damage } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Get products by barcode
+// NOTE: Must be defined before "/:id" to avoid route conflicts.
+router.get('/barcode/:barcode', authenticateToken, async (req, res) => {
+  try {
+    const product = await Product.findOne({ barcode: req.params.barcode })
+      .populate('supplier_id', 'name');
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const productObj = product.toObject();
+    const formattedProduct = {
+      ...productObj,
+      id: productObj._id,
+      supplier_name: product.supplier_id?.name || null,
+      supplier_id: product.supplier_id?._id?.toString() || null
+    };
+
+    res.json(formattedProduct);
+  } catch (error) {
+    console.error('Get product by barcode error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
 // Get all products with search and filter
 router.get('/', authenticateToken, async (req, res) => {

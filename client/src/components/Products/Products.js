@@ -13,9 +13,12 @@ const Products = () => {
   const [categoriesList, setCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [deletingProduct, setDeletingProduct] = useState(null);
+  const [deleteForm, setDeleteForm] = useState({ quantity: 1, remark: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ category: '', supplier: '', minStock: '', maxStock: '' });
   const [formData, setFormData] = useState({
@@ -92,14 +95,43 @@ const Products = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+  const openDeleteModal = (product) => {
+    setDeletingProduct(product);
+    setDeleteForm({ quantity: 1, remark: '' });
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletingProduct(null);
+    setDeleteForm({ quantity: 1, remark: '' });
+  };
+
+  const handleDelete = async () => {
+    if (!deletingProduct) return;
+    const qty = parseInt(deleteForm.quantity);
+    if (!Number.isFinite(qty) || qty < 1) {
+      toast.error('Please enter a valid quantity (>= 1)');
+      return;
+    }
+    if (qty > deletingProduct.quantity) {
+      toast.error(`Quantity cannot exceed available stock (${deletingProduct.quantity})`);
+      return;
+    }
+    if (!deleteForm.remark || !deleteForm.remark.trim()) {
+      toast.error('Remark is required');
+      return;
+    }
     try {
-      await axios.delete(`/api/products/${id}`);
-      toast.success('Product deleted successfully');
+      await axios.post(`/api/products/${deletingProduct.id}/damage`, {
+        quantity: qty,
+        remark: deleteForm.remark
+      });
+      toast.success('Product moved to damage successfully');
+      closeDeleteModal();
       fetchProducts();
     } catch (error) {
-      toast.error('Error deleting product');
+      toast.error(error.response?.data?.error || 'Error moving product to damage');
     }
   };
 
@@ -256,13 +288,57 @@ const Products = () => {
                 {user?.role === 'admin' && (
                   <td>
                     <button className="btn-edit" onClick={() => handleEdit(product)}>Edit</button>
-                    <button className="btn-delete" onClick={() => handleDelete(product.id)}>Delete</button>
+                    <button className="btn-delete" onClick={() => openDeleteModal(product)}>Delete</button>
                   </td>
                 )}
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Delete to Damage</h2>
+            <div style={{ marginBottom: '12px', color: '#555' }}>
+              {deletingProduct?.name} (Available: {deletingProduct?.quantity ?? 0})
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
+              <div className="form-group">
+                <label>Quantity to delete *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max={deletingProduct?.quantity ?? 1}
+                  value={deleteForm.quantity}
+                  onChange={(e) => setDeleteForm((p) => ({ ...p, quantity: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Remark</label>
+                <textarea
+                  value={deleteForm.remark}
+                  onChange={(e) => setDeleteForm((p) => ({ ...p, remark: e.target.value }))}
+                  placeholder="Reason for damage / deletion"
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="btn-delete">Confirm</button>
+                <button type="button" className="btn-secondary" onClick={closeDeleteModal}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {showModal && (

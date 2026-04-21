@@ -16,6 +16,7 @@ import Algorithms from './components/Algorithms/Algorithms';
 import Categories from './components/Categories/Categories';
 import Navbar from './components/Layout/Navbar';
 import Users from './components/Users/Users';
+import Damages from './components/Damages/Damages';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
@@ -51,6 +52,7 @@ function App() {
                       <Route path="/sales-orders" element={<SalesOrders />} />
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/algorithms" element={<Algorithms />} />
+                      <Route path="/damages" element={<Damages />} />
                       <Route path="/users" element={<Users />} />
                       <Route path="/change-password" element={<ChangePassword />} />
                     </Routes>
