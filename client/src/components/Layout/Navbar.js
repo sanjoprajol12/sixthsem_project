@@ -75,6 +75,13 @@ const Navbar = () => {
             Algorithms
           </Link>
         </li>
+        {isAdmin && (
+          <li>
+            <Link to="/damages" className={isActive('/damages') ? 'active' : ''}>
+              Damage
+            </Link>
+          </li>
+        )}
         <li className="user-info">
           <span>
             {user?.username} ({user?.role})

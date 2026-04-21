@@ -19,6 +19,7 @@ db.initDatabase();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/damages', require('./routes/damages'));
 app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/sales-orders', require('./routes/salesOrders'));

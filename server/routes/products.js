@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
-const { Product, Supplier } = require('../models');
+const { Product, Supplier, Damage } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -189,6 +189,62 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ error: 'Error deleting product' });
+  }
+});
+
+// Mark product quantity as damaged (Admin only)
+router.post('/:id/damage', authenticateToken, requireAdmin, [
+  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
+  body('remark').notEmpty().withMessage('Remark is required').isString()
+], async (req, res) => {
+  try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const qty = parseInt(req.body.quantity);
+    const remark = (req.body.remark || '').toString();
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (qty > product.quantity) {
+      return res.status(400).json({ error: `Quantity cannot exceed available stock (${product.quantity})` });
+    }
+
+    await Damage.create({
+      product_id: product._id,
+      quantity: qty,
+      remark,
+      deleted_by: req.user?.id || null,
+      product_snapshot: {
+        sku: product.sku,
+        name: product.name,
+        description: product.description || '',
+        category: product.category || '',
+        price: product.price,
+        cost: product.cost,
+        supplier_id: product.supplier_id || null,
+        barcode: product.barcode || ''
+      }
+    });
+
+    product.quantity = product.quantity - qty;
+    product.updated_at = Date.now();
+    await product.save();
+
+    res.json({ message: 'Product moved to damage successfully', remaining_quantity: product.quantity });
+  } catch (error) {
+    console.error('Product damage error:', error);
+    res.status(500).json({ error: 'Error moving product to damage' });
   }
 });
 

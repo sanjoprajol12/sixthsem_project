@@ -1,0 +1,34 @@
+.damages .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.damages .loading {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+}
+
+.damages .no-access {
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+  border-radius: 8px;
+}
+
+.damages .remark-cell {
+  max-width: 380px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.damages .empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #777;
+}
+
