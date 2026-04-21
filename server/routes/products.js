@@ -244,4 +244,70 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Move product quantity to damage (Admin only)
+router.post('/:id/damage', authenticateToken, requireAdmin, [
+  body('quantity')
+    .isInt({ min: 1 })
+    .withMessage('Quantity must be an integer >= 1'),
+  body('remark')
+    .notEmpty()
+    .withMessage('Remark is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const message = errors.array().map((e) => e.msg).join(', ');
+      return res.status(400).json({ error: message });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const qty = parseInt(req.body.quantity);
+    const remark = (req.body.remark || '').trim();
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (qty > product.quantity) {
+      return res.status(400).json({ error: `Quantity cannot exceed available stock (${product.quantity})` });
+    }
+
+    await Damage.create({
+      product_id: product._id,
+      quantity: qty,
+      remark,
+      deleted_by: req.user?.id || null,
+      product_snapshot: {
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        price: product.price,
+        cost: product.cost,
+        supplier_id: product.supplier_id || null,
+        barcode: product.barcode || null
+      }
+    });
+
+    const newQty = product.quantity - qty;
+    if (newQty <= 0) {
+      await Product.findByIdAndDelete(product._id);
+      return res.json({ message: 'Product moved to damage and deleted (quantity reached 0)' });
+    }
+
+    product.quantity = newQty;
+    await product.save();
+
+    res.json({ message: 'Product moved to damage successfully', remaining_quantity: newQty });
+  } catch (error) {
+    console.error('Move to damage error:', error);
+    res.status(500).json({ error: 'Error moving product to damage' });
+  }
+});
+
 module.exports = router;
