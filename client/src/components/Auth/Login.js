@@ -114,7 +114,7 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="auth-divider">
+          {/* <div className="auth-divider">
             <span>Quick Demo Sign-In</span>
           </div>
 
@@ -132,7 +132,7 @@ const Login = () => {
                 <span>{acc.label}</span>
               </button>
             ))}
-          </div>
+          </div> */}
 
           <p className="auth-footer-text">
             No account yet?{' '}
