@@ -420,6 +420,26 @@ const Dashboard = () => {
               ))}
             </div>
           </div>
+
+          {/* 7-Day Velocity Activity */}
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">📈 7-Day Sales Trend</div>
+              <div className="card-subtitle">{salesTrend.length} days recorded</div>
+            </div>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {salesTrend.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#6B7280' }}>No recent sales activity</div>
+              ) : (
+                salesTrend.slice(-5).map(day => (
+                  <div key={day.date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
+                    <span style={{ color: '#4B5563' }}>{day.date}</span>
+                    <span style={{ fontWeight: 600 }}>{fmtCurrency(day.revenue)} ({day.orders_count} orders)</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

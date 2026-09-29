@@ -108,6 +108,75 @@ router.post(
   }
 );
 
+// Adjust stock directly for a single product
+router.post(
+  '/products/:id/adjust',
+  authenticateToken,
+  canManageInventory,
+  async (req, res) => {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid product ID format' });
+      }
+
+      const { adjustment_type, quantity, reason, notes } = req.body;
+      const qty = parseInt(quantity, 10);
+      if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ error: 'Quantity must be a positive integer' });
+      }
+
+      const product = await Product.findById(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+
+      let delta = 0;
+      let txType = 'ADJUSTMENT_IN';
+
+      if (adjustment_type === 'cycle_count') {
+        delta = qty - product.quantity;
+        txType = delta >= 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT';
+      } else if (['found', 'return_in', 'surplus'].includes(adjustment_type)) {
+        delta = qty;
+        txType = 'ADJUSTMENT_IN';
+      } else {
+        delta = -qty;
+        txType = 'ADJUSTMENT_OUT';
+      }
+
+      if (delta === 0) {
+        return res.json({ message: 'Stock already at requested count', product });
+      }
+
+      if (product.quantity + delta < 0) {
+        return res.status(400).json({
+          error: `Cannot decrease stock below 0. Current stock is ${product.quantity}.`
+        });
+      }
+
+      const result = await InventoryService.applyStockMovement({
+        productId: product._id,
+        quantityChange: delta,
+        transactionType: txType,
+        unitCost: product.cost || 0,
+        referenceType: 'StockAdjustment',
+        referenceNumber: `ADJ-${Date.now()}`,
+        performedBy: req.user.id,
+        notes: `[${adjustment_type}] ${reason || ''} ${notes ? `(${notes})` : ''}`
+      });
+
+      res.json({
+        message: 'Stock adjusted successfully',
+        product: result.product,
+        transaction: result.transaction
+      });
+    } catch (error) {
+      console.error('Product stock adjustment error:', error);
+      res.status(400).json({ error: error.message || 'Error adjusting stock' });
+    }
+  }
+);
+
 // Get previous stock adjustments
 router.get('/adjustments', authenticateToken, canViewReports, async (req, res) => {
   try {

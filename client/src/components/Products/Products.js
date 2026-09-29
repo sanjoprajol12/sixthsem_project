@@ -16,8 +16,6 @@ const STOCK_STATUS_META = {
   OVERSTOCKED:   { label: 'Overstocked',   cls: 'badge stock-badge-overstocked',icon: '📦' }
 };
 
-const STATUS_OPTIONS = ['All', 'HEALTHY', 'LOW_STOCK', 'CRITICAL', 'OUT_OF_STOCK', 'OVERSTOCKED'];
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Product Form Modal
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,17 +34,17 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
       setForm({
         name: product.name || '',
         sku: product.sku || '',
-        category: product.category?._id || product.category || '',
+        category: product.category?.name || product.category || '',
         description: product.description || '',
-        unit_price: product.unit_price || '',
-        cost_price: product.cost_price || '',
-        quantity: product.quantity || '',
-        min_stock: product.min_stock || '',
-        reorder_level: product.reorder_level || '',
-        max_stock: product.max_stock || '',
+        unit_price: product.price !== undefined ? product.price : (product.unit_price ?? ''),
+        cost_price: product.cost !== undefined ? product.cost : (product.cost_price ?? ''),
+        quantity: product.quantity ?? 0,
+        min_stock: product.minimum_stock !== undefined ? product.minimum_stock : (product.min_stock ?? '5'),
+        reorder_level: product.reorder_level !== undefined ? product.reorder_level : '10',
+        max_stock: product.maximum_stock !== undefined ? product.maximum_stock : (product.max_stock ?? '200'),
         unit_of_measure: product.unit_of_measure || 'pcs',
         status: product.status || 'active',
-        supplier: product.supplier?._id || product.supplier || '',
+        supplier: product.supplier_id?._id || product.supplier_id || product.supplier?._id || product.supplier || '',
         brand: product.brand || '',
         location: product.location || '',
         initial_quantity: ''
@@ -54,9 +52,9 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
     } else {
       setForm({
         name: '', sku: '', category: '', description: '',
-        unit_price: '', cost_price: '', quantity: '0', min_stock: '5', reorder_level: '10', max_stock: '',
+        unit_price: '', cost_price: '', quantity: '0', min_stock: '5', reorder_level: '10', max_stock: '200',
         unit_of_measure: 'pcs', status: 'active', supplier: '', brand: '', location: '',
-        initial_quantity: ''
+        initial_quantity: '0'
       });
     }
     setErrors({});
@@ -66,8 +64,8 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
     const e = {};
     if (!form.name.trim())   e.name = 'Name is required';
     if (!form.sku.trim())    e.sku = 'SKU is required';
-    if (!form.unit_price || isNaN(form.unit_price) || Number(form.unit_price) < 0) e.unit_price = 'Valid selling price required';
-    if (!form.cost_price || isNaN(form.cost_price) || Number(form.cost_price) < 0) e.cost_price = 'Valid cost price required';
+    if (form.unit_price === '' || isNaN(form.unit_price) || Number(form.unit_price) < 0) e.unit_price = 'Valid selling price required';
+    if (form.cost_price === '' || isNaN(form.cost_price) || Number(form.cost_price) < 0) e.cost_price = 'Valid cost price required';
     if (Number(form.cost_price) > Number(form.unit_price)) e.cost_price = 'Cost price cannot exceed selling price';
     if (form.reorder_level && Number(form.reorder_level) < 0) e.reorder_level = 'Must be ≥ 0';
     return e;
@@ -79,13 +77,27 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
 
     setLoading(true);
     try {
-      const payload = { ...form };
-      Object.keys(payload).forEach(k => {
-        if (payload[k] === '') delete payload[k];
-        if (['unit_price','cost_price','min_stock','reorder_level','max_stock','initial_quantity'].includes(k)) {
-          payload[k] = Number(payload[k]) || 0;
-        }
-      });
+      const payload = {
+        name: form.name.trim(),
+        sku: form.sku.trim().toUpperCase(),
+        category: form.category || 'General',
+        description: form.description || '',
+        price: Number(form.unit_price) || 0,
+        cost: Number(form.cost_price) || 0,
+        unit_of_measure: form.unit_of_measure || 'pcs',
+        reorder_level: Number(form.reorder_level) || 10,
+        minimum_stock: Number(form.min_stock) || 5,
+        maximum_stock: Number(form.max_stock) || 200,
+        brand: form.brand || '',
+        status: form.status || 'active'
+      };
+
+      if (form.supplier) {
+        payload.supplier_id = form.supplier;
+      }
+      if (!product) {
+        payload.quantity = Number(form.initial_quantity) || 0;
+      }
 
       if (product) {
         await axios.put(`/api/products/${product._id}`, payload);
@@ -97,7 +109,7 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save product');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to save product');
     } finally {
       setLoading(false);
     }
@@ -143,8 +155,8 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers }
   );
 
   const unitOptions = ['pcs', 'kg', 'g', 'L', 'mL', 'box', 'pair', 'set', 'pack', 'roll', 'sheet', 'bottle'].map(u => ({ value: u, label: u }));
-  const catOptions = categories.map(c => ({ value: c._id, label: c.name }));
-  const supOptions = suppliers.map(s => ({ value: s._id, label: s.name }));
+  const catOptions = categories.map(c => ({ value: c.name, label: c.name }));
+  const supOptions = suppliers.map(s => ({ value: s._id || s.id, label: s.name }));
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -353,7 +365,7 @@ const Products = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('search')) setSearch(params.get('search'));
-  }, []);
+  }, [location.search]);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -384,7 +396,7 @@ const Products = () => {
       axios.get('/api/categories').catch(() => ({ data: [] })),
       axios.get('/api/suppliers').catch(() => ({ data: [] }))
     ]);
-    setCategories(Array.isArray(catRes.data) ? catRes.data : catRes.data.suppliers || []);
+    setCategories(Array.isArray(catRes.data) ? catRes.data : catRes.data.categories || []);
     setSuppliers(Array.isArray(supRes.data) ? supRes.data : supRes.data.suppliers || []);
   };
 
@@ -405,7 +417,10 @@ const Products = () => {
   // Stats
   const outCount  = products.filter(p => p.stock_status === 'OUT_OF_STOCK').length;
   const lowCount  = products.filter(p => p.stock_status === 'LOW_STOCK' || p.stock_status === 'CRITICAL').length;
-  const totalVal  = products.reduce((a, p) => a + ((p.quantity || 0) * (p.cost_price || 0)), 0);
+  const totalVal  = products.reduce((a, p) => {
+    const costVal = Number(p.cost !== undefined ? p.cost : p.cost_price) || 0;
+    return a + ((p.quantity || 0) * costVal);
+  }, 0);
 
   return (
     <div>
@@ -464,7 +479,7 @@ const Products = () => {
             <select className="filter-select" value={filterCategory}
               onChange={e => { setFilterCategory(e.target.value); setPage(1); }}>
               <option value="">All Categories</option>
-              {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              {categories.map(c => <option key={c._id || c.id} value={c.name}>{c.name}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -498,11 +513,14 @@ const Products = () => {
             <tbody>
               {products.map(p => {
                 const meta = STOCK_STATUS_META[p.stock_status] || STOCK_STATUS_META['HEALTHY'];
-                const margin = p.unit_price && p.cost_price
-                  ? ((1 - p.cost_price / p.unit_price) * 100).toFixed(0) + '%'
+                const costVal = Number(p.cost !== undefined ? p.cost : p.cost_price) || 0;
+                const priceVal = Number(p.price !== undefined ? p.price : p.unit_price) || 0;
+                const margin = priceVal > 0
+                  ? ((1 - costVal / priceVal) * 100).toFixed(0) + '%'
                   : '—';
-                const stockPct = p.max_stock
-                  ? Math.min(100, Math.round((p.quantity / p.max_stock) * 100))
+                const maxCapacity = p.maximum_stock || p.max_stock || (p.reorder_level ? p.reorder_level * 3 : 100);
+                const stockPct = maxCapacity > 0
+                  ? Math.min(100, Math.round((p.quantity / maxCapacity) * 100))
                   : null;
 
                 return (
@@ -515,8 +533,8 @@ const Products = () => {
                       </div>
                     </td>
                     <td style={{ fontSize: '13px' }}>{p.category?.name || p.category || '—'}</td>
-                    <td style={{ fontWeight: 500 }}>{fmtCurrency(p.cost_price)}</td>
-                    <td style={{ fontWeight: 600 }}>{fmtCurrency(p.unit_price)}</td>
+                    <td style={{ fontWeight: 500 }}>{fmtCurrency(costVal)}</td>
+                    <td style={{ fontWeight: 600 }}>{fmtCurrency(priceVal)}</td>
                     <td>
                       <span style={{
                         color: Number(margin) > 20 ? '#059669' : Number(margin) > 10 ? '#D97706' : '#DC2626',
@@ -544,7 +562,7 @@ const Products = () => {
                       <span className={meta.cls}>{meta.icon} {meta.label}</span>
                     </td>
                     <td style={{ fontSize: '12.5px' }}>
-                      {p.supplier?.name || p.supplier_name || '—'}
+                      {p.supplier_id?.name || p.supplier_name || p.supplier?.name || '—'}
                     </td>
                     <td>
                       <div className="row-actions">

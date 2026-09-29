@@ -1,26 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { useTheme } from '../../context/ThemeContext';
 
 const BREADCRUMB_LABELS = {
-  '/':               { label: 'Dashboard',         icon: '📊' },
-  '/products':       { label: 'Products',           icon: '📦' },
-  '/inventory':      { label: 'Stock & Ledger',     icon: '🏷️' },
-  '/damages':        { label: 'Damage & Loss',      icon: '🔴' },
-  '/purchase-orders':{ label: 'Purchase Orders',    icon: '🛒' },
-  '/suppliers':      { label: 'Suppliers',          icon: '🏭' },
-  '/sales-orders':   { label: 'Sales Orders',       icon: '🧾' },
-  '/customers':      { label: 'Customers',          icon: '👥' },
-  '/reports':        { label: 'Reports',            icon: '📈' },
-  '/algorithms':     { label: 'Demand & Reorder',   icon: '🤖' },
-  '/categories':     { label: 'Categories',         icon: '🗂️' },
-  '/users':          { label: 'User Management',    icon: '👤' },
-  '/audit-logs':     { label: 'Audit Trail',        icon: '🔍' },
-  '/change-password':{ label: 'Change Password',    icon: '🔑' }
+  '/':               { label: 'Dashboard',         icon: 'ri-dashboard-3-line' },
+  '/products':       { label: 'Products',           icon: 'ri-box-3-line' },
+  '/inventory':      { label: 'Stock & Ledger',     icon: 'ri-database-2-line' },
+  '/damages':        { label: 'Damage & Loss',      icon: 'ri-error-warning-line' },
+  '/purchase-orders':{ label: 'Purchase Orders',    icon: 'ri-shopping-cart-2-line' },
+  '/suppliers':      { label: 'Suppliers',          icon: 'ri-building-line' },
+  '/sales-orders':   { label: 'Sales Orders',       icon: 'ri-file-list-3-line' },
+  '/customers':      { label: 'Customers',          icon: 'ri-team-line' },
+  '/reports':        { label: 'Reports',            icon: 'ri-bar-chart-grouped-line' },
+  '/algorithms':     { label: 'Demand & Reorder',   icon: 'ri-robot-2-line' },
+  '/categories':     { label: 'Categories',         icon: 'ri-folder-3-line' },
+  '/users':          { label: 'User Management',    icon: 'ri-user-settings-line' },
+  '/audit-logs':     { label: 'Audit Trail',        icon: 'ri-shield-keyhole-line' },
+  '/change-password':{ label: 'Change Password',    icon: 'ri-lock-password-line' }
 };
 
 const Topbar = ({ onMenuToggle }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -32,8 +36,8 @@ const Topbar = ({ onMenuToggle }) => {
   const notifRef = useRef(null);
 
   // Get current page info
-  const pathname = window.location.pathname;
-  const pageInfo = BREADCRUMB_LABELS[pathname] || { label: 'Page', icon: '📄' };
+  const pathname = location.pathname;
+  const pageInfo = BREADCRUMB_LABELS[pathname] || { label: 'Page', icon: 'ri-file-line' };
 
   // Fetch notifications on mount
   useEffect(() => {
@@ -47,7 +51,7 @@ const Topbar = ({ onMenuToggle }) => {
       const res = await axios.get('/api/notifications');
       setNotifications(res.data.notifications || []);
       setUnreadCount(res.data.unread_count || 0);
-    } catch (err) {
+    } catch {
       // silent fail
     }
   };
@@ -91,10 +95,10 @@ const Topbar = ({ onMenuToggle }) => {
     setShowSearch(false);
     setSearchResults(null);
     switch (type) {
-      case 'product':    navigate(`/products?search=${item.sku}`); break;
-      case 'customer':   navigate(`/customers?search=${item.name}`); break;
-      case 'supplier':   navigate(`/suppliers?search=${item.name}`); break;
-      case 'salesOrder': navigate(`/sales-orders?search=${item.order_number}`); break;
+      case 'product':       navigate(`/products?search=${item.sku}`); break;
+      case 'customer':      navigate(`/customers?search=${item.name}`); break;
+      case 'supplier':      navigate(`/suppliers?search=${item.name}`); break;
+      case 'salesOrder':    navigate(`/sales-orders?search=${item.order_number}`); break;
       case 'purchaseOrder': navigate(`/purchase-orders?search=${item.order_number}`); break;
       default: break;
     }
@@ -121,25 +125,25 @@ const Topbar = ({ onMenuToggle }) => {
       <div className="topbar-left">
         {/* Mobile menu toggle */}
         <button
-          className="topbar-icon-btn"
+          className="topbar-icon-btn topbar-mobile-menu-btn"
           onClick={onMenuToggle}
-          style={{ display: 'none' }}
           id="mobile-menu-btn"
+          aria-label="Toggle Navigation"
         >
-          ☰
+          <i className="ri-menu-line"></i>
         </button>
 
         {/* Page breadcrumb */}
         <div className="topbar-breadcrumb">
-          <span>{pageInfo.icon}</span>
-          <span>/</span>
+          <i className={pageInfo.icon}></i>
+          <span style={{ color: 'var(--text-muted)' }}>/</span>
           <span className="topbar-breadcrumb-current">{pageInfo.label}</span>
         </div>
       </div>
 
       {/* Global Search */}
       <div className="topbar-search" ref={searchRef}>
-        <span className="topbar-search-icon">🔍</span>
+        <i className="ri-search-line topbar-search-icon"></i>
         <input
           type="text"
           placeholder="Search products, orders, customers..."
@@ -151,12 +155,12 @@ const Topbar = ({ onMenuToggle }) => {
         {showSearch && (searchLoading || hasResults || (searchQuery.length >= 2 && !searchLoading)) && (
           <div className="topbar-search-results">
             {searchLoading && (
-              <div style={{ padding: '14px 16px', fontSize: '13px', color: '#6B7280' }}>
+              <div style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>
                 Searching...
               </div>
             )}
             {!searchLoading && !hasResults && searchQuery.length >= 2 && (
-              <div style={{ padding: '14px 16px', fontSize: '13px', color: '#6B7280' }}>
+              <div style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>
                 No results found for "{searchQuery}"
               </div>
             )}
@@ -165,7 +169,7 @@ const Topbar = ({ onMenuToggle }) => {
                 <div className="search-result-section-title">Products</div>
                 {searchResults.products.map(p => (
                   <div key={p._id} className="search-result-item" onClick={() => handleSearchResult('product', p)}>
-                    <span>📦</span>
+                    <i className="ri-box-3-line" style={{ color: 'var(--primary)' }}></i>
                     <div>
                       <div className="search-result-item-name">{p.name}</div>
                       <div className="search-result-item-sub">SKU: {p.sku} · Stock: {p.quantity}</div>
@@ -179,7 +183,7 @@ const Topbar = ({ onMenuToggle }) => {
                 <div className="search-result-section-title">Customers</div>
                 {searchResults.customers.map(c => (
                   <div key={c._id} className="search-result-item" onClick={() => handleSearchResult('customer', c)}>
-                    <span>👥</span>
+                    <i className="ri-team-line" style={{ color: 'var(--primary)' }}></i>
                     <div>
                       <div className="search-result-item-name">{c.name}</div>
                       <div className="search-result-item-sub">{c.phone}</div>
@@ -193,7 +197,7 @@ const Topbar = ({ onMenuToggle }) => {
                 <div className="search-result-section-title">Sales Orders</div>
                 {searchResults.salesOrders.map(o => (
                   <div key={o._id} className="search-result-item" onClick={() => handleSearchResult('salesOrder', o)}>
-                    <span>🧾</span>
+                    <i className="ri-file-list-3-line" style={{ color: 'var(--primary)' }}></i>
                     <div>
                       <div className="search-result-item-name">{o.order_number}</div>
                       <div className="search-result-item-sub">{o.customer_name}</div>
@@ -207,7 +211,7 @@ const Topbar = ({ onMenuToggle }) => {
                 <div className="search-result-section-title">Purchase Orders</div>
                 {searchResults.purchaseOrders.map(o => (
                   <div key={o._id} className="search-result-item" onClick={() => handleSearchResult('purchaseOrder', o)}>
-                    <span>🛒</span>
+                    <i className="ri-shopping-cart-2-line" style={{ color: 'var(--primary)' }}></i>
                     <div>
                       <div className="search-result-item-name">{o.order_number}</div>
                       <div className="search-result-item-sub">NPR {(o.total_amount || 0).toLocaleString()}</div>
@@ -221,6 +225,16 @@ const Topbar = ({ onMenuToggle }) => {
       </div>
 
       <div className="topbar-right">
+        {/* Light / Night Switch */}
+        <button
+          className="topbar-icon-btn"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Night Mode'}
+          id="theme-toggle-btn"
+        >
+          <i className={theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line'}></i>
+        </button>
+
         {/* Notifications */}
         <div className="topbar-dropdown" ref={notifRef}>
           <button
@@ -228,7 +242,7 @@ const Topbar = ({ onMenuToggle }) => {
             onClick={() => setShowNotifs(!showNotifs)}
             title="Notifications"
           >
-            🔔
+            <i className="ri-notification-3-line"></i>
             {unreadCount > 0 && (
               <span className="topbar-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
@@ -242,13 +256,12 @@ const Topbar = ({ onMenuToggle }) => {
                 )}
               </div>
               {notifications.length === 0 ? (
-                <div style={{ padding: '20px 16px', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+                <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                   No notifications
                 </div>
               ) : (
                 notifications.slice(0, 8).map(n => (
-                  <div key={n._id} className={`notif-item${n.is_read ? '' : ' unread'}`}
-                    style={!n.is_read ? { backgroundColor: '#EFF6FF' } : {}}>
+                  <div key={n._id} className={`notif-item${n.is_read ? '' : ' unread'}`}>
                     <div className="notif-item-title">
                       <span className={`notif-severity-dot ${n.severity}`} />
                       {n.title}

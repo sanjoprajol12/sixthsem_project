@@ -1,51 +1,50 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
 
 const NAV_SECTIONS = [
   {
     label: 'Overview',
     items: [
-      { path: '/', icon: '📊', label: 'Dashboard', exact: true }
+      { path: '/', icon: 'ri-dashboard-3-line', label: 'Dashboard', exact: true }
     ]
   },
   {
     label: 'Inventory',
     items: [
-      { path: '/products',   icon: '📦', label: 'Products' },
-      { path: '/inventory',  icon: '🏷️', label: 'Stock & Ledger' },
-      { path: '/damages',    icon: '🔴', label: 'Damage & Loss', roles: ['super_admin','admin','inventory_manager'] }
+      { path: '/products',   icon: 'ri-box-3-line', label: 'Products' },
+      { path: '/inventory',  icon: 'ri-database-2-line', label: 'Stock & Ledger' },
+      { path: '/damages',    icon: 'ri-error-warning-line', label: 'Damage & Loss', roles: ['super_admin','admin','inventory_manager'] }
     ]
   },
   {
     label: 'Procurement',
     items: [
-      { path: '/purchase-orders', icon: '🛒', label: 'Purchase Orders' },
-      { path: '/suppliers',       icon: '🏭', label: 'Suppliers', roles: ['super_admin','admin','inventory_manager','purchase_staff'] }
+      { path: '/purchase-orders', icon: 'ri-shopping-cart-2-line', label: 'Purchase Orders' },
+      { path: '/suppliers',       icon: 'ri-building-line', label: 'Suppliers', roles: ['super_admin','admin','inventory_manager','purchase_staff'] }
     ]
   },
   {
     label: 'Sales',
     items: [
-      { path: '/sales-orders', icon: '🧾', label: 'Sales Orders' },
-      { path: '/customers',    icon: '👥', label: 'Customers' }
+      { path: '/sales-orders', icon: 'ri-file-list-3-line', label: 'Sales Orders' },
+      { path: '/customers',    icon: 'ri-team-line', label: 'Customers' }
     ]
   },
   {
     label: 'Analytics',
     items: [
-      { path: '/reports',    icon: '📈', label: 'Reports' },
-      { path: '/algorithms', icon: '🤖', label: 'Demand & Reorder' }
+      { path: '/reports',    icon: 'ri-bar-chart-grouped-line', label: 'Reports' },
+      { path: '/algorithms', icon: 'ri-robot-2-line', label: 'Demand & Reorder' }
     ]
   },
   {
     label: 'Administration',
     roles: ['super_admin','admin'],
     items: [
-      { path: '/categories', icon: '🗂️', label: 'Categories',  roles: ['super_admin','admin'] },
-      { path: '/users',      icon: '👤', label: 'User Management', roles: ['super_admin','admin'] },
-      { path: '/audit-logs', icon: '🔍', label: 'Audit Trail', roles: ['super_admin','admin'] }
+      { path: '/categories', icon: 'ri-folder-3-line', label: 'Categories',  roles: ['super_admin','admin'] },
+      { path: '/users',      icon: 'ri-user-settings-line', label: 'User Management', roles: ['super_admin','admin'] },
+      { path: '/audit-logs', icon: 'ri-shield-keyhole-line', label: 'Audit Trail', roles: ['super_admin','admin'] }
     ]
   }
 ];
@@ -62,7 +61,6 @@ const ROLE_LABELS = {
 const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -98,7 +96,9 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-logo">
-            <div className="sidebar-brand-icon">📦</div>
+            <div className="sidebar-brand-icon">
+              <i className="ri-box-3-fill" style={{ fontSize: '18px', color: '#fff' }}></i>
+            </div>
             <div className="sidebar-brand-text">
               <h1>StockMaster</h1>
               <span>Enterprise Inventory</span>
@@ -133,7 +133,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
                     className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
                     onClick={onMobileClose}
                   >
-                    <span className="sidebar-link-icon">{item.icon}</span>
+                    <i className={`${item.icon} sidebar-link-icon`} style={{ fontSize: '16px' }}></i>
                     {item.label}
                   </NavLink>
                 ))}
@@ -144,12 +144,12 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
 
         {/* Footer */}
         <div className="sidebar-footer">
-          <Link to="/change-password" className="sidebar-link" style={{marginBottom: '8px'}} onClick={onMobileClose}>
-            <span className="sidebar-link-icon">🔑</span>
+          <Link to="/change-password" className="sidebar-link" style={{ marginBottom: '8px' }} onClick={onMobileClose}>
+            <i className="ri-lock-password-line sidebar-link-icon" style={{ fontSize: '16px' }}></i>
             Change Password
           </Link>
           <button className="sidebar-logout-btn" onClick={handleLogout}>
-            <span>🚪</span>
+            <i className="ri-logout-box-r-line" style={{ marginRight: '6px' }}></i>
             Sign Out
           </button>
         </div>

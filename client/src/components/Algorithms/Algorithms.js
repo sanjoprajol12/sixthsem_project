@@ -25,6 +25,7 @@ const Algorithms = () => {
     } else {
       setAlgorithmResults(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedProduct]);
 
   const fetchProducts = async () => {

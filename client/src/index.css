@@ -1537,10 +1537,20 @@ tbody tr:hover .row-actions { opacity: 1; }
   .form-grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
 
+.topbar-mobile-menu-btn {
+  display: none;
+}
+
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 0px;
     --content-pad: 16px;
+  }
+
+  .topbar-mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .sidebar {

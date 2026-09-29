@@ -16,6 +16,7 @@ const Reports = () => {
 
   useEffect(() => {
     fetchReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, daysFilter]);
 
   const fetchReportData = async () => {
