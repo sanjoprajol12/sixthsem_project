@@ -29,6 +29,7 @@
     "quagga": "^0.12.1"
   },
   "devDependencies": {
+    "baseline-browser-mapping": "^2.11.26",
     "nodemon": "^3.0.1"
   }
 }
