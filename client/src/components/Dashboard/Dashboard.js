@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import BarcodeScanner from '../Products/BarcodeScanner';
+import BarcodeGenerator from '../Products/BarcodeGenerator';
 
 const fmtCurrency = (v) => `NPR ${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -38,7 +40,22 @@ const Dashboard = () => {
   const [pendingPOs, setPendingPOs] = useState([]);
   const [salesTrend, setSalesTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState(null);
   const navigate = useNavigate();
+
+  const handleBarcodeScanned = async (scannedCode) => {
+    setShowScanner(false);
+    try {
+      const res = await axios.get(`/api/products/barcode/${encodeURIComponent(scannedCode)}`);
+      if (res.data) {
+        toast.success(`Found product: ${res.data.name}`);
+        setScannedProduct(res.data);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || `No product found for barcode "${scannedCode}"`);
+    }
+  };
 
   useEffect(() => {
     fetchAll();
@@ -114,6 +131,9 @@ const Dashboard = () => {
           <p>Last 30 days performance & inventory health at a glance</p>
         </div>
         <div className="page-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => setShowScanner(true)}>
+            <i className="ri-barcode-box-line" /> Scan Barcode
+          </button>
           <button className="btn btn-outline btn-sm" onClick={fetchAll}><i className="ri-refresh-line" /> Refresh</button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/sales-orders')}>+ New Sale</button>
         </div>
@@ -442,6 +462,178 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          title="Scan Product Barcode"
+          onScan={handleBarcodeScanned}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Scanned Product Modal (Identical to Product Details) */}
+      {scannedProduct && (() => {
+        const costVal = Number(scannedProduct.cost !== undefined ? scannedProduct.cost : scannedProduct.cost_price) || 0;
+        const priceVal = Number(scannedProduct.price !== undefined ? scannedProduct.price : scannedProduct.unit_price) || 0;
+        const margin = priceVal > 0 ? ((1 - costVal / priceVal) * 100).toFixed(1) + '%' : '—';
+        const pStatus = scannedProduct.status || 'approved';
+
+        return (
+          <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setScannedProduct(null)}>
+            <div className="modal modal-md">
+              <div className="modal-header">
+                <div>
+                  <div className="modal-title"><i className="ri-eye-line" /> Product Details</div>
+                  <div className="modal-subtitle">{scannedProduct.name} (SKU: {scannedProduct.sku})</div>
+                </div>
+                <button className="modal-close-btn" onClick={() => setScannedProduct(null)}><i className="ri-close-line" /></button>
+              </div>
+
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Status Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>Current Status:</span>
+                  <span className={`status-badge status-${pStatus}`}>
+                    <i className={
+                      pStatus === 'approved' || pStatus === 'active' ? 'ri-checkbox-circle-line' :
+                      pStatus === 'pending' ? 'ri-time-line' :
+                      pStatus === 'disapproved' ? 'ri-close-circle-line' : 'ri-indeterminate-circle-line'
+                    } />
+                    {pStatus}
+                  </span>
+                </div>
+
+                {/* Quick Action Buttons inside Details Modal */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      background: '#059669',
+                      borderColor: '#059669'
+                    }}
+                    onClick={() => {
+                      setScannedProduct(null);
+                      navigate('/sales-orders');
+                    }}
+                  >
+                    <i className="ri-shopping-cart-line" /> New Sale
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                    onClick={() => {
+                      setScannedProduct(null);
+                      navigate('/purchase-orders');
+                    }}
+                  >
+                    <i className="ri-truck-line" /> New Purchase
+                  </button>
+                </div>
+
+                {scannedProduct.disapproval_reason && (
+                  <div className="alert alert-danger" style={{ marginBottom: 0 }}>
+                    <span className="alert-icon"><i className="ri-error-warning-line" /></span>
+                    <div>
+                      <strong>Disapproval Reason:</strong>
+                      <div>{scannedProduct.disapproval_reason}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'var(--gray-100)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Category</div>
+                    <div style={{ fontWeight: 600 }}>{scannedProduct.category?.name || scannedProduct.category || '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Supplier</div>
+                    <div style={{ fontWeight: 600 }}>{scannedProduct.supplier_id?.name || scannedProduct.supplier?.name || scannedProduct.supplier_name || '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Cost Price</div>
+                    <div style={{ fontWeight: 600 }}>{fmtCurrency(costVal)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Selling Price</div>
+                    <div style={{ fontWeight: 600 }}>{fmtCurrency(priceVal)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Profit Margin</div>
+                    <div style={{ fontWeight: 600, color: '#059669' }}>{margin}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>Current Stock</div>
+                    <div style={{ fontWeight: 600, color: scannedProduct.quantity <= 0 ? '#DC2626' : undefined }}>
+                      {scannedProduct.quantity} {scannedProduct.unit_of_measure || 'pcs'}
+                    </div>
+                  </div>
+                </div>
+
+                {scannedProduct.description && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Description</div>
+                    <div style={{ fontSize: '13px', color: 'var(--gray-600)' }}>{scannedProduct.description}</div>
+                  </div>
+                )}
+
+                {/* Barcode Preview & Print in Details */}
+                {scannedProduct.barcode ? (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: '#374151' }}>
+                      <i className="ri-barcode-line" style={{ marginRight: '4px' }} /> Barcode Label
+                    </div>
+                    <BarcodeGenerator
+                      value={scannedProduct.barcode}
+                      productName={scannedProduct.name}
+                      productSku={scannedProduct.sku}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: '#9CA3AF', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <i className="ri-barcode-line" /> No barcode registered for this product
+                  </div>
+                )}
+
+                {scannedProduct.approved_by && (
+                  <div style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
+                    Approved by: {scannedProduct.approved_by?.full_name || scannedProduct.approved_by?.username || 'Admin'}
+                    {scannedProduct.approved_at && ` on ${new Date(scannedProduct.approved_at).toLocaleDateString()}`}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    setScannedProduct(null);
+                    navigate(`/products?search=${encodeURIComponent(scannedProduct.sku)}`);
+                  }}
+                >
+                  <i className="ri-box-3-line" /> View in Products Catalog
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={() => setScannedProduct(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

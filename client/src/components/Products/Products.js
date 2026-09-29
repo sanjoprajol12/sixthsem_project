@@ -5,6 +5,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSidebarCounts } from '../../context/SidebarCountsContext';
 import ActionMenu from '../Common/ActionMenu';
+import BarcodeScanner from './BarcodeScanner';
+import BarcodeGenerator from './BarcodeGenerator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helpers
@@ -27,16 +29,19 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers, 
     name: '', sku: '', category: '', description: '',
     unit_price: '', cost_price: '', quantity: '', min_stock: '', reorder_level: '', max_stock: '',
     unit_of_measure: 'pcs', status: 'pending', supplier: '', brand: '', location: '',
-    initial_quantity: ''
+    initial_quantity: '',
+    barcode: ''
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showFormScanner, setShowFormScanner] = useState(false);
 
   useEffect(() => {
     if (product) {
       setForm({
         name: product.name || '',
         sku: product.sku || '',
+        barcode: product.barcode || '',
         category: product.category?.name || product.category || '',
         description: product.description || '',
         unit_price: product.price !== undefined ? product.price : (product.unit_price ?? ''),
@@ -54,7 +59,7 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers, 
       });
     } else {
       setForm({
-        name: '', sku: '', category: '', description: '',
+        name: '', sku: '', barcode: '', category: '', description: '',
         unit_price: '', cost_price: '', quantity: '0', min_stock: '5', reorder_level: '10', max_stock: '200',
         unit_of_measure: 'pcs', status: isSuperAdmin ? 'approved' : 'pending', supplier: '', brand: '', location: '',
         initial_quantity: '0'
@@ -83,6 +88,7 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers, 
       const payload = {
         name: form.name.trim(),
         sku: form.sku.trim().toUpperCase(),
+        barcode: form.barcode ? form.barcode.trim() : null,
         category: form.category || 'General',
         description: form.description || '',
         price: Number(form.unit_price) || 0,
@@ -187,6 +193,36 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers, 
               {field('unit_of_measure', 'Unit of Measure', { type: 'select', required: true, options: unitOptions })}
             </div>
             {field('description', 'Description', { type: 'textarea', placeholder: 'Product description...' })}
+
+            {/* Barcode & Device Scan */}
+            <div className="form-group" style={{ marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0 }}>
+                  <i className="ri-barcode-line" style={{ marginRight: '4px' }} /> Barcode / UPC / EAN
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-xs"
+                  onClick={() => setShowFormScanner(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <i className="ri-camera-line" /> Scan from Device
+                </button>
+              </div>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enter or generate barcode (e.g. 890123456789)"
+                value={form.barcode}
+                onChange={e => setForm(p => ({ ...p, barcode: e.target.value }))}
+              />
+              <BarcodeGenerator
+                value={form.barcode}
+                productName={form.name}
+                productSku={form.sku}
+                onChange={(code) => setForm(p => ({ ...p, barcode: code }))}
+              />
+            </div>
           </div>
 
           {/* Pricing */}
@@ -252,6 +288,18 @@ const ProductModal = ({ open, onClose, product, onSaved, categories, suppliers, 
           </button>
         </div>
       </div>
+
+      {showFormScanner && (
+        <BarcodeScanner
+          title="Scan Product Barcode"
+          onScan={(code) => {
+            setForm(p => ({ ...p, barcode: code }));
+            setShowFormScanner(false);
+            toast.success(`Barcode captured: ${code}`);
+          }}
+          onClose={() => setShowFormScanner(false)}
+        />
+      )}
     </div>
   );
 };
@@ -361,7 +409,7 @@ const AdjustStockModal = ({ open, onClose, product, onSaved }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 //  View Product Details Modal
 // ─────────────────────────────────────────────────────────────────────────────
-const ViewProductModal = ({ open, onClose, product }) => {
+const ViewProductModal = ({ open, onClose, product, onNewSale, onNewPurchase }) => {
   if (!open || !product) return null;
 
   const costVal = Number(product.cost !== undefined ? product.cost : product.cost_price) || 0;
@@ -389,6 +437,40 @@ const ViewProductModal = ({ open, onClose, product }) => {
               } />
               {product.status || 'Approved'}
             </span>
+          </div>
+
+          {/* Quick Action Buttons inside Details Modal */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: '#059669',
+                borderColor: '#059669'
+              }}
+              onClick={() => { onClose(); onNewSale && onNewSale(product); }}
+            >
+              <i className="ri-shopping-cart-line" /> New Sale
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onClick={() => { onClose(); onNewPurchase && onNewPurchase(product); }}
+            >
+              <i className="ri-truck-line" /> New Purchase
+            </button>
           </div>
 
           {product.disapproval_reason && (
@@ -435,12 +517,488 @@ const ViewProductModal = ({ open, onClose, product }) => {
             </div>
           )}
 
+          {/* Barcode Preview & Print in Details */}
+          {product.barcode ? (
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: '#374151' }}>
+                <i className="ri-barcode-line" style={{ marginRight: '4px' }} /> Barcode Label
+              </div>
+              <BarcodeGenerator
+                value={product.barcode}
+                productName={product.name}
+                productSku={product.sku}
+              />
+            </div>
+          ) : (
+            <div style={{ fontSize: '12px', color: '#9CA3AF', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <i className="ri-barcode-line" /> No barcode registered for this product
+            </div>
+          )}
+
           {product.approved_by && (
             <div style={{ fontSize: '12px', color: 'var(--gray-500)' }}>
               Approved by: {product.approved_by?.full_name || product.approved_by?.username || 'Admin'}
               {product.approved_at && ` on ${new Date(product.approved_at).toLocaleDateString()}`}
             </div>
           )}
+        </div>
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ background: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => { onClose(); onNewSale && onNewSale(product); }}
+            >
+              <i className="ri-shopping-cart-line" /> New Sale
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => { onClose(); onNewPurchase && onNewPurchase(product); }}
+            >
+              <i className="ri-truck-line" /> New Purchase
+            </button>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Quick Sale Modal
+// ─────────────────────────────────────────────────────────────────────────────
+const QuickSaleModal = ({ open, onClose, product, onSaved }) => {
+  const [quantity, setQuantity] = useState(1);
+  const [unitPrice, setUnitPrice] = useState('');
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      setQuantity(1);
+      setUnitPrice(product.price !== undefined ? product.price : (product.unit_price ?? 0));
+      setCustomerName('Walk-in Customer');
+      setCustomerPhone('');
+      setPaymentMethod('cash');
+      setNotes('');
+    }
+  }, [product, open]);
+
+  if (!open || !product) return null;
+
+  const maxStock = Number(product.quantity) || 0;
+  const numQty = parseInt(quantity, 10) || 0;
+  const numPrice = parseFloat(unitPrice) || 0;
+  const grandTotal = numQty * numPrice;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (numQty <= 0) {
+      toast.warning('Quantity must be greater than 0');
+      return;
+    }
+    if (numQty > maxStock) {
+      toast.error(`Cannot sell more than available stock (${maxStock} ${product.unit_of_measure || 'pcs'})`);
+      return;
+    }
+    if (numPrice < 0) {
+      toast.warning('Price cannot be negative');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        customer_name: customerName.trim() || 'Walk-in Customer',
+        customer_phone: customerPhone.trim(),
+        payment_method: paymentMethod,
+        payment_status: 'paid',
+        status: 'completed',
+        notes: notes ? `Quick Sale: ${notes}` : `Quick Sale for ${product.name}`,
+        items: [
+          {
+            product_id: product._id || product.id,
+            quantity: numQty,
+            unit_price: numPrice,
+            discount: 0
+          }
+        ]
+      };
+
+      await axios.post('/api/sales-orders', payload);
+      toast.success(`Sale completed! ${numQty} ${product.unit_of_measure || 'pcs'} sold for ${fmtCurrency(grandTotal)}`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to complete sale');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal modal-md">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title"><i className="ri-shopping-cart-line" style={{ color: '#059669' }} /> New Sale</div>
+            <div className="modal-subtitle">{product.name} (SKU: {product.sku})</div>
+          </div>
+          <button className="modal-close-btn" onClick={onClose}><i className="ri-close-line" /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#F0FDF4', padding: '12px 14px', borderRadius: '8px', border: '1px solid #BBF7D0' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: '#166534', textTransform: 'uppercase', fontWeight: 600 }}>Available Stock</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: maxStock <= 0 ? '#DC2626' : '#15803D' }}>
+                  {maxStock} {product.unit_of_measure || 'pcs'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: '#166534', textTransform: 'uppercase', fontWeight: 600 }}>Standard Price</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#15803D' }}>
+                  {fmtCurrency(product.price !== undefined ? product.price : product.unit_price)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group">
+                <label className="form-label form-label-required">Quantity to Sell</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="1"
+                  max={maxStock > 0 ? maxStock : undefined}
+                  value={quantity}
+                  onChange={e => setQuantity(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label form-label-required">Unit Price (NPR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="form-control"
+                  min="0"
+                  value={unitPrice}
+                  onChange={e => setUnitPrice(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group">
+                <label className="form-label">Customer Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Walk-in Customer"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Customer Phone (optional)</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. 98XXXXXXXX"
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group">
+                <label className="form-label">Payment Method</label>
+                <select
+                  className="form-control"
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card / POS</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="qr_code">QR Payment / Fonepay</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Total Amount</label>
+                <div style={{
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 12px',
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  color: '#059669'
+                }}>
+                  {fmtCurrency(grandTotal)}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Order Notes (optional)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Optional notes or remarks..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ background: '#059669', borderColor: '#059669' }}
+              disabled={loading || maxStock <= 0}
+            >
+              {loading ? 'Processing...' : `Confirm Sale (${fmtCurrency(grandTotal)})`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Quick Purchase Order Modal
+// ─────────────────────────────────────────────────────────────────────────────
+const QuickPurchaseModal = ({ open, onClose, product, suppliers = [], onSaved }) => {
+  const [supplierId, setSupplierId] = useState('');
+  const [quantity, setQuantity] = useState(10);
+  const [unitCost, setUnitCost] = useState('');
+  const [expectedDate, setExpectedDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      const defSup = product.supplier_id?._id || product.supplier_id || product.supplier?._id || product.supplier || (suppliers[0]?._id || suppliers[0]?.id || '');
+      setSupplierId(defSup || '');
+      setQuantity(product.reorder_level || 10);
+      setUnitCost(product.cost !== undefined ? product.cost : (product.cost_price ?? 0));
+      setExpectedDate('');
+      setNotes('');
+    }
+  }, [product, suppliers, open]);
+
+  if (!open || !product) return null;
+
+  const numQty = parseInt(quantity, 10) || 0;
+  const numCost = parseFloat(unitCost) || 0;
+  const totalCost = numQty * numCost;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!supplierId) {
+      toast.warning('Please select a supplier for this purchase order');
+      return;
+    }
+    if (numQty <= 0) {
+      toast.warning('Quantity must be greater than 0');
+      return;
+    }
+    if (numCost < 0) {
+      toast.warning('Cost price cannot be negative');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        supplier_id: supplierId,
+        status: 'submitted',
+        expected_delivery_date: expectedDate || null,
+        notes: notes ? `Quick PO: ${notes}` : `Restock order for ${product.name}`,
+        items: [
+          {
+            product_id: product._id || product.id,
+            quantity: numQty,
+            unit_price: numCost,
+            discount: 0
+          }
+        ]
+      };
+
+      await axios.post('/api/purchase-orders', payload);
+      toast.success(`Purchase order created for ${numQty} ${product.unit_of_measure || 'pcs'} of "${product.name}"`);
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to create purchase order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal modal-md">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title"><i className="ri-truck-line" style={{ color: '#2563EB' }} /> New Purchase Order</div>
+            <div className="modal-subtitle">{product.name} (SKU: {product.sku})</div>
+          </div>
+          <button className="modal-close-btn" onClick={onClose}><i className="ri-close-line" /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#EFF6FF', padding: '12px 14px', borderRadius: '8px', border: '1px solid #BFDBFE' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: '#1E40AF', textTransform: 'uppercase', fontWeight: 600 }}>Current Stock</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#1D4ED8' }}>
+                  {product.quantity || 0} {product.unit_of_measure || 'pcs'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: '#1E40AF', textTransform: 'uppercase', fontWeight: 600 }}>Reorder Level</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#D97706' }}>
+                  {product.reorder_level || 10} {product.unit_of_measure || 'pcs'}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label form-label-required">Supplier</label>
+              <select
+                className="form-control"
+                value={supplierId}
+                onChange={e => setSupplierId(e.target.value)}
+                required
+              >
+                <option value="">-- Select Supplier --</option>
+                {suppliers.map(s => (
+                  <option key={s._id || s.id} value={s._id || s.id}>
+                    {s.name} {s.contact_person ? `(${s.contact_person})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group">
+                <label className="form-label form-label-required">Quantity to Order</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="1"
+                  value={quantity}
+                  onChange={e => setQuantity(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label form-label-required">Unit Cost (NPR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="form-control"
+                  min="0"
+                  value={unitCost}
+                  onChange={e => setUnitCost(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group">
+                <label className="form-label">Expected Delivery Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={expectedDate}
+                  onChange={e => setExpectedDate(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Total Estimated Cost</label>
+                <div style={{
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 12px',
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  color: '#2563EB'
+                }}>
+                  {fmtCurrency(totalCost)}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Notes (optional)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="PO reference or instructions..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Cancel</button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading || !supplierId}
+            >
+              {loading ? 'Submitting...' : `Create Order (${fmtCurrency(totalCost)})`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Barcode Label View & Print Modal
+// ─────────────────────────────────────────────────────────────────────────────
+const BarcodeViewModal = ({ open, onClose, product }) => {
+  if (!open || !product) return null;
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal modal-sm">
+        <div className="modal-header">
+          <div>
+            <div className="modal-title"><i className="ri-barcode-box-line" /> Barcode Label</div>
+            <div className="modal-subtitle">{product.name} (SKU: {product.sku})</div>
+          </div>
+          <button className="modal-close-btn" onClick={onClose}><i className="ri-close-line" /></button>
+        </div>
+        <div className="modal-body" style={{ textAlign: 'center' }}>
+          <BarcodeGenerator
+            value={product.barcode || product.sku}
+            productName={product.name}
+            productSku={product.sku}
+          />
         </div>
         <div className="modal-footer">
           <button className="btn btn-outline" onClick={onClose}>Close</button>
@@ -483,10 +1041,14 @@ const Products = () => {
   const [editProduct, setEditProduct] = useState(null);
   const [adjustProduct, setAdjustProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
+  const [saleModalProduct, setSaleModalProduct] = useState(null);
+  const [purchaseModalProduct, setPurchaseModalProduct] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [approveTarget, setApproveTarget] = useState(null);
   const [disapproveTarget, setDisapproveTarget] = useState(null);
   const [disapproveReason, setDisapproveReason] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [barcodeModalProduct, setBarcodeModalProduct] = useState(null);
 
   // Sync URL search params with filter states
   useEffect(() => {
@@ -604,6 +1166,21 @@ const Products = () => {
         onClick: () => setViewProduct(p)
       },
       {
+        label: 'New Sale',
+        icon: 'ri-shopping-cart-line',
+        onClick: () => setSaleModalProduct(p)
+      },
+      {
+        label: 'New Purchase',
+        icon: 'ri-truck-line',
+        onClick: () => setPurchaseModalProduct(p)
+      },
+      {
+        label: 'Print Barcode',
+        icon: 'ri-barcode-line',
+        onClick: () => setBarcodeModalProduct(p)
+      },
+      {
         label: 'Edit',
         icon: 'ri-edit-line',
         onClick: () => { setEditProduct(p); setShowModal(true); }
@@ -681,6 +1258,9 @@ const Products = () => {
           <p>Manage your product catalog, stock levels, and approval status</p>
         </div>
         <div className="page-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => setShowScanner(true)}>
+            <i className="ri-barcode-box-line" /> Scan Barcode
+          </button>
           <button className="btn btn-outline btn-sm" onClick={() => navigate('/inventory')}>
             <i className="ri-file-list-3-line" /> Stock Ledger
           </button>
@@ -715,14 +1295,36 @@ const Products = () => {
       <div className="table-container">
         <div className="table-toolbar" style={{ flexWrap: 'wrap', gap: '10px' }}>
           <div className="table-filters" style={{ flexWrap: 'wrap', gap: '8px' }}>
-            <div className="table-search">
+            <div className="table-search" style={{ position: 'relative' }}>
               <i className="ri-search-line table-search-icon" />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products or barcode..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
+                style={{ paddingRight: '36px' }}
               />
+              <button
+                type="button"
+                onClick={() => setShowScanner(true)}
+                title="Scan barcode with camera or file"
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#4B5563',
+                  fontSize: '16px',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <i className="ri-barcode-line" />
+              </button>
             </div>
 
             {/* Approval / Record Status Filter */}
@@ -855,9 +1457,29 @@ const Products = () => {
                   <tr key={p._id}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{p.name}</div>
-                      <div style={{ fontSize: '11.5px', color: '#6B7280' }}>
-                        SKU: {p.sku}
-                        {p.brand && <> · {p.brand}</>}
+                      <div style={{ fontSize: '11.5px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>SKU: {p.sku}</span>
+                        {p.barcode && (
+                          <span
+                            onClick={() => setBarcodeModalProduct(p)}
+                            title="Click to view/print barcode"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              background: '#F3F4F6',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontFamily: 'monospace',
+                              fontSize: '11px',
+                              color: '#374151',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <i className="ri-barcode-line" /> {p.barcode}
+                          </span>
+                        )}
+                        {p.brand && <span>· {p.brand}</span>}
                       </div>
                     </td>
                     <td style={{ fontSize: '13px' }}>{p.category?.name || p.category || '—'}</td>
@@ -942,6 +1564,29 @@ const Products = () => {
           open={!!viewProduct}
           onClose={() => setViewProduct(null)}
           product={viewProduct}
+          onNewSale={(p) => setSaleModalProduct(p)}
+          onNewPurchase={(p) => setPurchaseModalProduct(p)}
+        />
+      )}
+
+      {/* Quick Sale Modal */}
+      {saleModalProduct && (
+        <QuickSaleModal
+          open={!!saleModalProduct}
+          product={saleModalProduct}
+          onClose={() => setSaleModalProduct(null)}
+          onSaved={() => { fetchProducts(); refreshCounts(); }}
+        />
+      )}
+
+      {/* Quick Purchase Order Modal */}
+      {purchaseModalProduct && (
+        <QuickPurchaseModal
+          open={!!purchaseModalProduct}
+          product={purchaseModalProduct}
+          suppliers={suppliers}
+          onClose={() => setPurchaseModalProduct(null)}
+          onSaved={() => { fetchProducts(); refreshCounts(); }}
         />
       )}
 
@@ -1033,6 +1678,37 @@ const Products = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          title="Scan Barcode to Lookup Product"
+          onScan={async (scannedCode) => {
+            setShowScanner(false);
+            try {
+              const res = await axios.get(`/api/products/barcode/${encodeURIComponent(scannedCode)}`);
+              if (res.data) {
+                toast.success(`Product found: ${res.data.name}`);
+                setSearch(res.data.sku || res.data.barcode || scannedCode);
+                setViewProduct(res.data);
+              }
+            } catch (err) {
+              toast.error(err.response?.data?.error || `No product found for barcode "${scannedCode}"`);
+              setSearch(scannedCode);
+            }
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Barcode Label Modal */}
+      {barcodeModalProduct && (
+        <BarcodeViewModal
+          open={!!barcodeModalProduct}
+          product={barcodeModalProduct}
+          onClose={() => setBarcodeModalProduct(null)}
+        />
       )}
     </div>
   );
