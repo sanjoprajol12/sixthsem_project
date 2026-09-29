@@ -139,6 +139,59 @@ const seedData = async () => {
         ]);
       }
 
+      // Normalize statuses for existing products, suppliers, categories, customers
+      await Product.updateMany({ status: { $in: [null, undefined, 'active'] } }, { $set: { status: 'approved' } });
+      await Supplier.updateMany({ status: { $in: [null, undefined] } }, { $set: { status: 'active' } });
+      await Category.updateMany({ status: { $in: [null, undefined] } }, { $set: { status: 'active' } });
+      await Customer.updateMany({ status: { $in: [null, undefined] } }, { $set: { status: 'active' } });
+
+      // Ensure at least one pending product and one disapproved product exist for testing the approval workflow
+      const pendingCount = await Product.countDocuments({ status: 'pending' });
+      if (pendingCount === 0) {
+        const anySup = await Supplier.findOne();
+        await Product.create({
+          sku: 'DEMO-PENDING-01',
+          name: 'Premium Himalayan Green Tea 250g',
+          description: 'Organic handpicked Ilam green tea pending Super Admin quality check',
+          category: 'Beverages',
+          brand: 'Himalayan Organic',
+          unit_of_measure: 'box',
+          quantity: 45,
+          cost: 250,
+          price: 450,
+          reorder_level: 10,
+          minimum_stock: 5,
+          maximum_stock: 100,
+          supplier_id: anySup ? anySup._id : null,
+          status: 'pending'
+        });
+      }
+
+      const disapprovedCount = await Product.countDocuments({ status: 'disapproved' });
+      if (disapprovedCount === 0) {
+        const anySup = await Supplier.findOne();
+        const adminUser = await User.findOne({ role: 'super_admin' });
+        await Product.create({
+          sku: 'DEMO-DISAPP-01',
+          name: 'Instant Noodles Reject Pack 500g',
+          description: 'Damaged packaging batch rejected upon receiving audit',
+          category: 'Packaged Food',
+          brand: 'QuickMeal',
+          unit_of_measure: 'pack',
+          quantity: 12,
+          cost: 80,
+          price: 120,
+          reorder_level: 5,
+          minimum_stock: 2,
+          maximum_stock: 50,
+          supplier_id: anySup ? anySup._id : null,
+          status: 'disapproved',
+          disapproved_by: adminUser ? adminUser._id : null,
+          disapproved_at: new Date(),
+          disapproval_reason: 'Packaging damaged and batch expiry date too close (within 15 days)'
+        });
+      }
+
       return;
     }
 

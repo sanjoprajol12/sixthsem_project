@@ -104,8 +104,8 @@ const BarcodeScanner = ({ onScan, onClose }) => {
     <div className="scanner-overlay">
       <div className="scanner-modal">
         <div className="scanner-header">
-          <h3>Barcode Scanner</h3>
-          <button onClick={handleClose}>×</button>
+          <h3><i className="ri-barcode-line" style={{ marginRight: '8px' }} />Barcode Scanner</h3>
+          <button className="modal-close-btn" onClick={handleClose}><i className="ri-close-line" /></button>
         </div>
         <div className="scanner-content">
           {error && <p className="scanner-error">{error}</p>}
@@ -114,7 +114,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           )}
           <div id="scanner" ref={scannerRef} className="scanner-view"></div>
           {scanning && (
-            <button className="btn-secondary" onClick={stopScanning} style={{ marginTop: '10px' }}>
+            <button className="btn btn-secondary" onClick={stopScanning} style={{ marginTop: '10px' }}>
               Stop Scanner
             </button>
           )}

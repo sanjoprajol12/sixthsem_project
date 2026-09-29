@@ -17,21 +17,63 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Interceptor to immediately log out disabled or unauthenticated users on any API failure
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        if (
+          error.response &&
+          (error.response.status === 401 ||
+            (error.response.status === 403 &&
+              (error.response.data?.account_disabled ||
+                error.response.data?.account_pending ||
+                error.response.data?.error?.toLowerCase().includes('deactivated') ||
+                error.response.data?.error?.toLowerCase().includes('disabled'))))
+        ) {
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
+          if (
+            window.location.pathname !== '/login' &&
+            window.location.pathname !== '/register'
+          ) {
+            toast.error(
+              error.response.data?.error ||
+                'Session expired or account is disabled. Please log in.'
+            );
+            window.location.href = '/login';
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       axios.get('/api/auth/me')
         .then(res => {
-          setUser(res.data.user);
+          if (res.data.user && (res.data.user.status === 'disabled' || res.data.user.status === 'inactive')) {
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
+            setUser(null);
+          } else {
+            setUser(res.data.user);
+          }
         })
         .catch(() => {
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
         })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const login = async (username, password) => {
@@ -51,10 +93,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const res = await axios.post('/api/auth/register', userData);
-      localStorage.setItem('token', res.data.token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-      setUser(res.data.user);
-      toast.success('Registration successful');
+      toast.success(res.data?.message || 'Registration successful. Please log in.');
       return res.data;
     } catch (error) {
       toast.error(error.response?.data?.error || 'Registration failed');

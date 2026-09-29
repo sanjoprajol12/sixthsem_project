@@ -172,7 +172,7 @@ const Topbar = ({ onMenuToggle }) => {
                     <i className="ri-box-3-line" style={{ color: 'var(--primary)' }}></i>
                     <div>
                       <div className="search-result-item-name">{p.name}</div>
-                      <div className="search-result-item-sub">SKU: {p.sku} · Stock: {p.quantity}</div>
+                      <div className="search-result-item-sub">SKU: {p.sku} | Stock: {p.quantity}</div>
                     </div>
                   </div>
                 ))}

@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const { Product, Supplier, Category } = require('../models');
-const { authenticateToken, canManageInventory, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, canManageInventory, requireAdmin, requireRole } = require('../middleware/auth');
 const InventoryService = require('../services/inventoryService');
 const AuditService = require('../services/auditService');
 
@@ -40,7 +40,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     let query = {};
 
-    if (status) {
+    if (status && status !== 'all') {
       query.status = status;
     } else {
       // By default exclude archived unless asked
@@ -76,6 +76,9 @@ router.get('/', authenticateToken, async (req, res) => {
     const products = await Product.find(query)
       .populate('supplier_id', 'name contact_person email phone')
       .populate('location_id', 'name code')
+      .populate('approved_by', 'username full_name')
+      .populate('disapproved_by', 'username full_name')
+      .populate('created_by', 'username full_name')
       .sort({ created_at: -1 });
 
     let formattedProducts = products.map((product) => {
@@ -180,6 +183,9 @@ router.post(
       const initialQty = parseInt(quantity, 10) || 0;
       const initialCost = parseFloat(cost) || 0;
 
+      const isSuperAdmin = (req.user.role || '').toLowerCase().replace(/[\s-]+/g, '_') === 'super_admin';
+      const initialStatus = isSuperAdmin && req.body.status ? req.body.status : (isSuperAdmin ? 'approved' : 'pending');
+
       const product = await Product.create({
         sku: upperSku,
         name,
@@ -199,7 +205,10 @@ router.post(
         batch_number: batch_number || '',
         expiry_date: expiry_date ? new Date(expiry_date) : null,
         lead_time_days: parseInt(lead_time_days, 10) || 7,
-        status: 'active'
+        status: initialStatus,
+        created_by: req.user.id,
+        approved_by: initialStatus === 'approved' ? req.user.id : null,
+        approved_at: initialStatus === 'approved' ? new Date() : null
       });
 
       // If initial quantity > 0, log an initial inventory transaction in the ledger
@@ -307,6 +316,97 @@ router.put('/:id', authenticateToken, canManageInventory, async (req, res) => {
     res.status(500).json({ error: 'Error updating product: ' + error.message });
   }
 });
+
+// Approve product (Super Admin only)
+const handleApprove = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    product.status = 'approved';
+    product.approved_by = req.user.id;
+    product.approved_at = new Date();
+    product.disapproved_by = null;
+    product.disapproved_at = null;
+    product.disapproval_reason = '';
+    await product.save();
+
+    await AuditService.log({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'PRODUCT_APPROVED',
+      entity: 'Product',
+      entityId: product._id,
+      details: { sku: product.sku, name: product.name },
+      req
+    });
+
+    const updated = await Product.findById(product._id)
+      .populate('supplier_id', 'name contact_person email phone')
+      .populate('location_id', 'name code')
+      .populate('approved_by', 'username full_name')
+      .populate('disapproved_by', 'username full_name');
+
+    res.json({ message: 'Product approved successfully', product: updated });
+  } catch (error) {
+    console.error('Approve product error:', error);
+    res.status(500).json({ error: 'Error approving product: ' + error.message });
+  }
+};
+
+router.put('/:id/approve', authenticateToken, requireRole('super_admin'), handleApprove);
+router.patch('/:id/approve', authenticateToken, requireRole('super_admin'), handleApprove);
+
+// Disapprove product (Super Admin only)
+const handleDisapprove = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const { reason } = req.body;
+    product.status = 'disapproved';
+    product.disapproved_by = req.user.id;
+    product.disapproved_at = new Date();
+    product.disapproval_reason = reason && reason.trim() ? reason.trim() : 'Disapproved by Super Admin';
+    await product.save();
+
+    await AuditService.log({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'PRODUCT_DISAPPROVED',
+      entity: 'Product',
+      entityId: product._id,
+      details: { sku: product.sku, name: product.name, reason: product.disapproval_reason },
+      req
+    });
+
+    const updated = await Product.findById(product._id)
+      .populate('supplier_id', 'name contact_person email phone')
+      .populate('location_id', 'name code')
+      .populate('approved_by', 'username full_name')
+      .populate('disapproved_by', 'username full_name');
+
+    res.json({ message: 'Product disapproved', product: updated });
+  } catch (error) {
+    console.error('Disapprove product error:', error);
+    res.status(500).json({ error: 'Error disapproving product: ' + error.message });
+  }
+};
+
+router.put('/:id/disapprove', authenticateToken, requireRole('super_admin'), handleDisapprove);
+router.patch('/:id/disapprove', authenticateToken, requireRole('super_admin'), handleDisapprove);
 
 // Archive product instead of hard deleting (Preserves data integrity)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {

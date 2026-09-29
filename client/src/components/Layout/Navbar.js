@@ -15,7 +15,8 @@ const Navbar = () => {
   };
 
   const isActive = (path) => location.pathname === path;
-  const isAdmin = user?.role === 'admin';
+  const userRole = (user?.role || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const isAdmin = ['super_admin', 'superadmin', 'admin'].includes(userRole);
 
   return (
     <nav className="navbar">
@@ -23,7 +24,7 @@ const Navbar = () => {
         <h2>Inventory System</h2>
       </div>
       <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-        ☰
+        <i className="ri-menu-line" />
       </button>
       <ul className={`navbar-menu ${isMobileMenuOpen ? 'active' : ''}`}>
         <li>

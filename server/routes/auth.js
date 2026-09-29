@@ -157,11 +157,20 @@ router.post(
 // Get current user profile
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) {
+    const dbUser = await User.findById(req.user.id).select('-password');
+    if (!dbUser) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ user });
+    res.json({
+      user: {
+        id: dbUser._id.toString(),
+        username: dbUser.username,
+        email: dbUser.email,
+        full_name: dbUser.full_name || dbUser.username,
+        role: dbUser.role,
+        status: dbUser.status
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error fetching user profile' });
   }

@@ -22,6 +22,7 @@ import Users from './components/Users/Users';
 import AuditLogs from './components/AuditLogs/AuditLogs';
 import Sidebar from './components/Layout/Sidebar';
 import Topbar from './components/Layout/Topbar';
+import { SidebarCountsProvider } from './context/SidebarCountsContext';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
@@ -36,7 +37,8 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  return user ? children : <Navigate to="/login" replace />;
+  const isActiveUser = user && user.status !== 'disabled' && user.status !== 'inactive' && user.status !== 'pending';
+  return isActiveUser ? children : <Navigate to="/login" replace />;
 };
 
 const AppLayout = () => {
@@ -75,21 +77,23 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/*"
-              element={
-                <PrivateRoute>
-                  <AppLayout />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
-          <ToastContainer position="top-right" autoClose={3000} />
-        </Router>
+        <SidebarCountsProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/*"
+                element={
+                  <PrivateRoute>
+                    <AppLayout />
+                  </PrivateRoute>
+                }
+              />
+            </Routes>
+            <ToastContainer position="top-right" autoClose={3000} />
+          </Router>
+        </SidebarCountsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

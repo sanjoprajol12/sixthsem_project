@@ -59,7 +59,16 @@ const customerSchema = new mongoose.Schema({
   created_at: {
     type: Date,
     default: Date.now
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now
   }
+});
+
+customerSchema.pre('save', function (next) {
+  this.updated_at = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Customer', customerSchema);

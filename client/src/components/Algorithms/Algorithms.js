@@ -169,7 +169,9 @@ const Algorithms = () => {
                 )}
                 {algorithmResults.skipped && algorithmResults.skipped.length > 0 && (
                   <div style={{ marginTop: '20px' }}>
-                    <h4 style={{ color: '#ff9800' }}>⚠️ Skipped Products (No Supplier Assigned)</h4>
+                    <h4 style={{ color: '#D97706', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <i className="ri-alert-line" /> Skipped Products (No Supplier Assigned)
+                    </h4>
                     <table className="data-table">
                       <thead>
                         <tr>

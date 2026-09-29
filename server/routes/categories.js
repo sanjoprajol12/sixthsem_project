@@ -9,7 +9,21 @@ const router = express.Router();
 // Get all categories
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const { search, status } = req.query;
+    let query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const categories = await Category.find(query).sort({ name: 1 });
     res.json(
       categories.map((cat) => ({
         ...cat.toObject(),
@@ -35,16 +49,16 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, description } = req.body;
+      const { name, description, status = 'active' } = req.body;
 
       const existing = await Category.findOne({ name: new RegExp(`^${name}$`, 'i') });
       if (existing) {
         return res.status(400).json({ error: 'Category with this name already exists' });
       }
 
-      const category = await Category.create({ name, description });
+      const category = await Category.create({ name, description, status });
 
-      res.status(201).json({ id: category._id, message: 'Category created successfully' });
+      res.status(201).json({ id: category._id, category, message: 'Category created successfully' });
     } catch (error) {
       console.error('Create category error:', error);
       res.status(500).json({ error: 'Error creating category' });
@@ -59,11 +73,15 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid category ID format' });
     }
 
-    const { name, description } = req.body;
+    const { name, description, status } = req.body;
+    const updateData = { updated_at: Date.now() };
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (status !== undefined) updateData.status = status;
 
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name, description, updated_at: Date.now() },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -71,10 +89,35 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Category not found' });
     }
 
-    res.json({ message: 'Category updated successfully' });
+    res.json({ message: 'Category updated successfully', category });
   } catch (error) {
     console.error('Update category error:', error);
     res.status(500).json({ error: 'Error updating category' });
+  }
+});
+
+// Toggle / update category status
+router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid category ID format' });
+    }
+
+    const { status } = req.body;
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const newStatus = status || (category.status === 'active' ? 'inactive' : 'active');
+    category.status = newStatus;
+    category.updated_at = Date.now();
+    await category.save();
+
+    res.json({ message: `Category status updated to ${newStatus}`, category });
+  } catch (error) {
+    console.error('Update category status error:', error);
+    res.status(500).json({ error: 'Error updating category status' });
   }
 });
 

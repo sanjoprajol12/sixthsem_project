@@ -19,13 +19,13 @@ const StatCard = ({ label, value, icon, iconBg, iconColor, accentColor, change, 
     <div className="stat-card-top">
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-icon" style={{ background: iconBg || '#EFF6FF', color: iconColor || '#2563EB' }}>
-        {icon}
+        <i className={icon} />
       </div>
     </div>
     <div className="stat-card-value">{value}</div>
     {change !== undefined && (
       <div className={`stat-card-change ${changeDir || 'neutral'}`}>
-        {changeDir === 'up' ? '↑' : changeDir === 'down' ? '↓' : '→'} {change}
+        {changeDir === 'up' ? <i className="ri-arrow-up-line" style={{ marginRight: '2px' }} /> : changeDir === 'down' ? <i className="ri-arrow-down-line" style={{ marginRight: '2px' }} /> : <i className="ri-arrow-right-line" style={{ marginRight: '2px' }} />} {change}
       </div>
     )}
   </div>
@@ -80,25 +80,25 @@ const Dashboard = () => {
 
   const attentionItems = [
     inv.out_of_stock_count > 0 && {
-      icon: '🚫', iconBg: '#FEF2F2', iconColor: '#DC2626',
+      iconCls: 'ri-close-circle-line', iconBg: '#FEF2F2', iconColor: '#DC2626',
       title: `${inv.out_of_stock_count} product${inv.out_of_stock_count > 1 ? 's' : ''} out of stock`,
       sub: 'Requires immediate reorder',
       path: '/inventory?stockStatus=OUT_OF_STOCK'
     },
     inv.critical_stock_count > 0 && {
-      icon: '⚠️', iconBg: '#FFF7ED', iconColor: '#EA580C',
+      iconCls: 'ri-error-warning-line', iconBg: '#FFF7ED', iconColor: '#EA580C',
       title: `${inv.critical_stock_count} product${inv.critical_stock_count > 1 ? 's' : ''} at critical level`,
       sub: 'Below minimum stock threshold',
       path: '/inventory?stockStatus=CRITICAL'
     },
     inv.low_stock_count > 0 && {
-      icon: '📉', iconBg: '#FFFBEB', iconColor: '#D97706',
+      iconCls: 'ri-arrow-down-line', iconBg: '#FFFBEB', iconColor: '#D97706',
       title: `${inv.low_stock_count} product${inv.low_stock_count > 1 ? 's' : ''} at low stock`,
       sub: 'At or below reorder level',
       path: '/algorithms'
     },
     ops.pending_purchase_orders > 0 && {
-      icon: '📋', iconBg: '#EFF6FF', iconColor: '#2563EB',
+      iconCls: 'ri-file-list-3-line', iconBg: '#EFF6FF', iconColor: '#2563EB',
       title: `${ops.pending_purchase_orders} purchase order${ops.pending_purchase_orders > 1 ? 's' : ''} pending approval`,
       sub: 'Review and approve in Purchase Orders',
       path: '/purchase-orders?status=submitted'
@@ -114,7 +114,7 @@ const Dashboard = () => {
           <p>Last 30 days performance & inventory health at a glance</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-outline btn-sm" onClick={fetchAll}>🔄 Refresh</button>
+          <button className="btn btn-outline btn-sm" onClick={fetchAll}><i className="ri-refresh-line" /> Refresh</button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/sales-orders')}>+ New Sale</button>
         </div>
       </div>
@@ -122,13 +122,13 @@ const Dashboard = () => {
       {/* Attention Required Banner */}
       {attentionItems.length > 0 && (
         <div className="alert alert-warning" style={{ marginBottom: '20px' }}>
-          <span className="alert-icon">⚠️</span>
+          <i className="ri-error-warning-line alert-icon" />
           <div>
             <strong>{attentionItems.length} item{attentionItems.length > 1 ? 's' : ''} need your attention</strong>
             <div style={{ marginTop: '4px', fontSize: '13px' }}>
               {attentionItems.map((a, i) => (
                 <span key={i} style={{ marginRight: '16px' }}>
-                  {a.icon} {a.title}
+                  <i className={a.iconCls} style={{ color: a.iconColor }} /> {a.title}
                 </span>
               ))}
             </div>
@@ -141,7 +141,7 @@ const Dashboard = () => {
         <StatCard
           label="Revenue (30 days)"
           value={fmtCurrency(fin.total_revenue)}
-          icon="💰"
+          icon="ri-money-dollar-circle-line"
           iconBg="#ECFDF5"
           iconColor="#059669"
           accentColor="#059669"
@@ -150,7 +150,7 @@ const Dashboard = () => {
         <StatCard
           label="Gross Profit"
           value={fmtCurrency(fin.gross_profit)}
-          icon="📈"
+          icon="ri-bar-chart-line"
           iconBg="#EFF6FF"
           iconColor="#2563EB"
           accentColor="#2563EB"
@@ -160,7 +160,7 @@ const Dashboard = () => {
         <StatCard
           label="Inventory Value"
           value={fmtCurrency(fin.inventory_valuation)}
-          icon="🏷️"
+          icon="ri-price-tag-3-line"
           iconBg="#EDE9FE"
           iconColor="#7C3AED"
           accentColor="#7C3AED"
@@ -169,7 +169,7 @@ const Dashboard = () => {
         <StatCard
           label="Total Products"
           value={inv.total_products}
-          icon="📦"
+          icon="ri-box-3-line"
           iconBg="#F0FDF4"
           iconColor="#059669"
           accentColor="#059669"
@@ -178,7 +178,7 @@ const Dashboard = () => {
         <StatCard
           label="Out of Stock"
           value={inv.out_of_stock_count}
-          icon="🚫"
+          icon="ri-close-circle-line"
           iconBg="#FEF2F2"
           iconColor="#DC2626"
           accentColor="#DC2626"
@@ -187,7 +187,7 @@ const Dashboard = () => {
         <StatCard
           label="Sales Orders (30d)"
           value={ops.total_sales_orders}
-          icon="🧾"
+          icon="ri-file-list-3-line"
           iconBg="#ECFDF5"
           iconColor="#059669"
           accentColor="#059669"
@@ -196,7 +196,7 @@ const Dashboard = () => {
         <StatCard
           label="Damage Loss (30d)"
           value={fmtCurrency(fin.damage_loss)}
-          icon="🔴"
+          icon="ri-error-warning-fill"
           iconBg="#FEF2F2"
           iconColor="#DC2626"
           accentColor="#DC2626"
@@ -205,7 +205,7 @@ const Dashboard = () => {
         <StatCard
           label="Pending POs"
           value={ops.pending_purchase_orders}
-          icon="🛒"
+          icon="ri-shopping-cart-2-line"
           iconBg="#FFFBEB"
           iconColor="#D97706"
           accentColor="#D97706"
@@ -219,7 +219,7 @@ const Dashboard = () => {
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">⚠️ Low Stock Alerts</div>
+                <div className="card-title"><i className="ri-error-warning-line" /> Low Stock Alerts</div>
                 <div className="card-subtitle">Products at or below reorder level</div>
               </div>
               <button className="btn btn-outline btn-sm" onClick={() => navigate('/algorithms')}>
@@ -228,7 +228,7 @@ const Dashboard = () => {
             </div>
             {lowStockAlerts.length === 0 ? (
               <div className="table-empty">
-                <span className="table-empty-icon">✅</span>
+                <i className="ri-checkbox-circle-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
                 <div className="table-empty-text">All stock levels healthy</div>
               </div>
             ) : (
@@ -270,7 +270,7 @@ const Dashboard = () => {
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">📋 Pending Purchase Orders</div>
+                <div className="card-title"><i className="ri-shopping-cart-2-line" /> Pending Purchase Orders</div>
                 <div className="card-subtitle">Awaiting approval or processing</div>
               </div>
               <button className="btn btn-outline btn-sm" onClick={() => navigate('/purchase-orders')}>
@@ -279,7 +279,7 @@ const Dashboard = () => {
             </div>
             {pendingPOs.length === 0 ? (
               <div className="table-empty">
-                <span className="table-empty-icon">✅</span>
+                <i className="ri-checkbox-circle-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
                 <div className="table-empty-text">No pending purchase orders</div>
               </div>
             ) : (
@@ -316,14 +316,14 @@ const Dashboard = () => {
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">🎯 Action Required</div>
+                <div className="card-title"><i className="ri-alert-line" /> Action Required</div>
                 <div className="card-subtitle">Items needing your attention</div>
               </div>
               <span className="badge badge-danger">{attentionItems.length}</span>
             </div>
             {attentionItems.length === 0 ? (
               <div className="table-empty" style={{ padding: '24px 20px' }}>
-                <span className="table-empty-icon">✅</span>
+                <i className="ri-checkbox-circle-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
                 <div className="table-empty-text">All systems healthy</div>
                 <div className="table-empty-sub">No immediate action required</div>
               </div>
@@ -331,14 +331,14 @@ const Dashboard = () => {
               <div className="action-required-list">
                 {attentionItems.map((item, i) => (
                   <div key={i} className="action-required-item" onClick={() => navigate(item.path)}>
-                    <div className="action-required-icon" style={{ background: item.iconBg }}>
-                      {item.icon}
+                    <div className="action-required-icon" style={{ background: item.iconBg, color: item.iconColor }}>
+                      <i className={item.iconCls} style={{ fontSize: '16px' }} />
                     </div>
                     <div className="action-required-content">
                       <div className="action-required-title">{item.title}</div>
                       <div className="action-required-sub">{item.sub}</div>
                     </div>
-                    <span style={{ color: '#9CA3AF' }}>→</span>
+                    <i className="ri-arrow-right-s-line" style={{ color: '#9CA3AF' }} />
                   </div>
                 ))}
               </div>
@@ -349,14 +349,14 @@ const Dashboard = () => {
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">🏆 Top Selling (30 days)</div>
+                <div className="card-title"><i className="ri-trophy-line" /> Top Selling (30 days)</div>
                 <div className="card-subtitle">By units sold</div>
               </div>
               <button className="btn btn-outline btn-sm" onClick={() => navigate('/reports')}>Reports</button>
             </div>
             {topSelling.length === 0 ? (
               <div className="table-empty" style={{ padding: '24px' }}>
-                <span className="table-empty-icon">📊</span>
+                <i className="ri-bar-chart-grouped-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
                 <div className="table-empty-text">No sales data yet</div>
               </div>
             ) : (
@@ -396,7 +396,7 @@ const Dashboard = () => {
           {/* Stock Health Donut */}
           <div className="card">
             <div className="card-header">
-              <div className="card-title">🏥 Inventory Health</div>
+              <div className="card-title"><i className="ri-heart-pulse-line" /> Inventory Health</div>
             </div>
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
@@ -424,7 +424,7 @@ const Dashboard = () => {
           {/* 7-Day Velocity Activity */}
           <div className="card">
             <div className="card-header">
-              <div className="card-title">📈 7-Day Sales Trend</div>
+              <div className="card-title"><i className="ri-bar-chart-line" /> 7-Day Sales Trend</div>
               <div className="card-subtitle">{salesTrend.length} days recorded</div>
             </div>
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

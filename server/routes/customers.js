@@ -10,8 +10,12 @@ const router = express.Router();
 // Get all customers
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { search, type } = req.query;
-    let query = { status: 'active' };
+    const { search, type, status } = req.query;
+    let query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
 
     if (type && type !== 'all') {
       query.customer_type = type;
@@ -136,20 +140,21 @@ router.put('/:id', authenticateToken, canManageSales, async (req, res) => {
       return res.status(400).json({ error: 'Invalid customer ID format' });
     }
 
-    const { name, email, phone, address, customer_type, tax_number, credit_limit, notes } = req.body;
+    const { name, email, phone, address, customer_type, tax_number, credit_limit, notes, status } = req.body;
+    const updateData = { updated_at: Date.now() };
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (address !== undefined) updateData.address = address;
+    if (customer_type !== undefined) updateData.customer_type = customer_type;
+    if (tax_number !== undefined) updateData.tax_number = tax_number;
+    if (credit_limit !== undefined) updateData.credit_limit = credit_limit;
+    if (notes !== undefined) updateData.notes = notes;
+    if (status !== undefined) updateData.status = status;
 
     const customer = await Customer.findByIdAndUpdate(
       req.params.id,
-      {
-        name,
-        email,
-        phone,
-        address,
-        customer_type,
-        tax_number,
-        credit_limit,
-        notes
-      },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -161,6 +166,31 @@ router.put('/:id', authenticateToken, canManageSales, async (req, res) => {
   } catch (error) {
     console.error('Update customer error:', error);
     res.status(500).json({ error: 'Error updating customer' });
+  }
+});
+
+// Toggle / update customer status
+router.put('/:id/status', authenticateToken, canManageSales, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid customer ID format' });
+    }
+
+    const { status } = req.body;
+    const customer = await Customer.findById(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const newStatus = status || (customer.status === 'active' ? 'inactive' : 'active');
+    customer.status = newStatus;
+    customer.updated_at = Date.now();
+    await customer.save();
+
+    res.json({ message: `Customer status updated to ${newStatus}`, customer });
+  } catch (error) {
+    console.error('Update customer status error:', error);
+    res.status(500).json({ error: 'Error updating customer status' });
   }
 });
 

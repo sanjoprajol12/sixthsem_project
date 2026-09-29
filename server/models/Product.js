@@ -87,9 +87,32 @@ const productSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'discontinued', 'archived'],
-    default: 'active',
+    enum: ['active', 'inactive', 'pending', 'approved', 'disapproved', 'discontinued', 'archived'],
+    default: 'pending',
     index: true
+  },
+  approved_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approved_at: {
+    type: Date
+  },
+  disapproved_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  disapproved_at: {
+    type: Date
+  },
+  disapproval_reason: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   batch_number: {
     type: String,

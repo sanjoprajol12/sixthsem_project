@@ -2,15 +2,23 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { useSidebarCounts } from '../../context/SidebarCountsContext';
+import ActionMenu from '../Common/ActionMenu';
+import ConfirmDialog from '../Common/ConfirmDialog';
 import './Users.css';
 
 const Users = () => {
   const { user } = useAuth();
+  const { refreshCounts } = useSidebarCounts();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [activity, setActivity] = useState({});
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState({ purchaseOrders: [], salesOrders: [] });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -18,8 +26,9 @@ const Users = () => {
     role: 'staff',
   });
 
-  const isSuperAdmin = user?.role === 'super_admin';
-  const isAdmin = isSuperAdmin || user?.role === 'admin';
+  const normRole = (user?.role || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const isSuperAdmin = normRole === 'super_admin' || normRole === 'superadmin';
+  const isAdmin = isSuperAdmin || normRole === 'admin';
 
   const fetchUsersWithActivity = useCallback(async () => {
     try {
@@ -78,6 +87,7 @@ const Users = () => {
         role: 'staff',
       });
       fetchUsersWithActivity();
+      refreshCounts();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error creating user');
     }
@@ -88,27 +98,48 @@ const Users = () => {
       await axios.put(`/api/users/${id}/role`, { role });
       toast.success('Role updated successfully');
       fetchUsersWithActivity();
+      refreshCounts();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error updating role');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+  const handleDelete = (targetUser) => {
+    const targetId = targetUser.id || targetUser._id;
+    if (targetId === user?.id || targetId === user?._id) {
+      toast.error('You cannot delete your own account');
+      return;
+    }
+    setDeleteTarget(targetUser);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteTarget) return;
     try {
-      await axios.delete(`/api/users/${id}`);
+      setIsDeleting(true);
+      const targetId = deleteTarget.id || deleteTarget._id;
+      await axios.delete(`/api/users/${targetId}`);
       toast.success('User deleted');
+      setDeleteTarget(null);
       fetchUsersWithActivity();
+      refreshCounts();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error deleting user');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleStatusChange = async (id, status) => {
+    if (id === user?.id && (status === 'disabled' || status === 'inactive')) {
+      toast.error('You cannot disable your own account');
+      return;
+    }
     try {
       await axios.put(`/api/users/${id}/status`, { status });
       toast.success(`User marked as ${status}`);
       fetchUsersWithActivity();
+      refreshCounts();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error updating status');
     }
@@ -138,6 +169,15 @@ const Users = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="table-loading" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <div className="loading-spinner" />
+        <span style={{ color: 'var(--gray-500)', fontSize: '14px' }}>Loading user directory...</span>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div>
@@ -146,17 +186,81 @@ const Users = () => {
         </div>
         <div className="alert alert-warning">
           <i className="ri-error-warning-line"></i>
-          You do not have permission to view this page.
+          You do not have permission to view this page. (Logged in as: {user?.role || 'Guest'})
         </div>
       </div>
     );
   }
 
   const canManageTarget = (u) => {
-    if (u.id === user.id) return false;
+    if (u.id === user?.id) return false;
     if (isSuperAdmin) return true;
-    if (u.role === 'admin' || u.role === 'super_admin') return false;
+    const targetRole = (u.role || '').toLowerCase().replace(/[\s-]+/g, '_');
+    if (targetRole === 'admin' || targetRole === 'super_admin' || targetRole === 'superadmin') return false;
     return true;
+  };
+
+  const filteredUsers = users.filter((u) => {
+    if (statusFilter !== 'all' && u.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchName = (u.username || '').toLowerCase().includes(q);
+      const matchEmail = (u.email || '').toLowerCase().includes(q);
+      const matchRole = (u.role || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail && !matchRole) return false;
+    }
+    return true;
+  });
+
+  const getRowActions = (u) => {
+    const manageable = canManageTarget(u);
+    const isSelf = u.id === user?.id;
+
+    const actions = [
+      {
+        label: 'View Activity',
+        icon: 'ri-eye-line',
+        onClick: () => handleViewActivity(u)
+      }
+    ];
+
+    if (manageable && !isSelf) {
+      if (u.status === 'pending') {
+        actions.push({
+          label: 'Approve User',
+          icon: 'ri-checkbox-circle-line',
+          success: true,
+          onClick: () => handleStatusChange(u.id, 'active')
+        });
+      }
+
+      if (u.status === 'active') {
+        actions.push({
+          label: 'Disable Account',
+          icon: 'ri-pause-line',
+          warning: true,
+          onClick: () => handleStatusChange(u.id, 'disabled')
+        });
+      }
+
+      if (u.status === 'disabled' || u.status === 'inactive') {
+        actions.push({
+          label: 'Enable Account',
+          icon: 'ri-play-line',
+          success: true,
+          onClick: () => handleStatusChange(u.id, 'active')
+        });
+      }
+
+      actions.push({
+        label: 'Delete User',
+        icon: 'ri-delete-bin-line',
+        danger: true,
+        onClick: () => handleDelete(u)
+      });
+    }
+
+    return actions;
   };
 
   return (
@@ -236,16 +340,44 @@ const Users = () => {
 
         {/* Existing Users Table */}
         <div className="table-container">
-          <div className="table-toolbar">
-            <span style={{ fontWeight: 600, fontSize: '15px' }}>Registered Accounts</span>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {users.length} accounts
+          <div className="table-toolbar" style={{ flexWrap: 'wrap', gap: '8px' }}>
+            <div className="table-filters" style={{ flexWrap: 'wrap', gap: '8px' }}>
+              <div className="table-search">
+                <i className="ri-search-line table-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <select
+                className="filter-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+                <option value="pending">Pending</option>
+              </select>
+              {(search || statusFilter !== 'all') && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => { setSearch(''); setStatusFilter('all'); }}
+                >
+                  <i className="ri-filter-off-line" style={{ marginRight: '4px' }} />
+                  Clear
+                </button>
+              )}
+            </div>
+            <div style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)' }}>
+              {filteredUsers.length} accounts
             </div>
           </div>
 
-          {loading ? (
-            <div className="loading-screen"><div className="spinner" /></div>
-          ) : users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="table-empty">
               <i className="ri-team-line table-empty-icon"></i>
               <div className="table-empty-text">No users found</div>
@@ -259,16 +391,21 @@ const Users = () => {
                   <th>Status</th>
                   <th>Activity</th>
                   <th>Joined</th>
-                  <th>Actions</th>
+                  <th style={{ width: '60px', textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => {
+                {filteredUsers.map((u) => {
                   const manageable = canManageTarget(u);
+                  const isSelf = u.id === user?.id;
+                  const uStatus = u.status || 'active';
+
                   return (
                     <tr key={u.id}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{u.username}</div>
+                        <div style={{ fontWeight: 600 }}>
+                          {u.username} {isSelf && <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 500 }}>(You)</span>}
+                        </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{u.email}</div>
                       </td>
                       <td>
@@ -291,8 +428,12 @@ const Users = () => {
                         )}
                       </td>
                       <td>
-                        <span className={`badge ${u.status === 'active' ? 'badge-success' : u.status === 'pending' ? 'badge-warning' : 'badge-danger'}`}>
-                          {u.status}
+                        <span className={`status-badge status-${uStatus}`}>
+                          <i className={
+                            uStatus === 'active' ? 'ri-checkbox-circle-line' :
+                            uStatus === 'pending' ? 'ri-time-line' : 'ri-indeterminate-circle-line'
+                          } />
+                          {uStatus}
                         </span>
                       </td>
                       <td style={{ fontSize: '12.5px' }}>
@@ -302,56 +443,8 @@ const Users = () => {
                       <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
-                      <td>
-                        <div className="row-actions">
-                          <button
-                            className="btn btn-outline btn-xs"
-                            onClick={() => handleViewActivity(u)}
-                            title="View Activity"
-                          >
-                            <i className="ri-eye-line"></i>
-                          </button>
-
-                          {manageable && u.status === 'pending' && (
-                            <button
-                              className="btn btn-success btn-xs"
-                              onClick={() => handleStatusChange(u.id, 'active')}
-                              title="Approve"
-                            >
-                              <i className="ri-check-line"></i>
-                            </button>
-                          )}
-
-                          {manageable && u.status === 'active' && (
-                            <button
-                              className="btn btn-warning btn-xs"
-                              onClick={() => handleStatusChange(u.id, 'disabled')}
-                              title="Disable"
-                            >
-                              <i className="ri-pause-line"></i>
-                            </button>
-                          )}
-
-                          {manageable && u.status === 'disabled' && (
-                            <button
-                              className="btn btn-primary btn-xs"
-                              onClick={() => handleStatusChange(u.id, 'active')}
-                              title="Activate"
-                            >
-                              <i className="ri-play-line"></i>
-                            </button>
-                          )}
-
-                          {manageable && (
-                            <button
-                              className="btn btn-danger btn-xs"
-                              onClick={() => handleDelete(u.id)}
-                              title="Delete User"
-                            >
-                              <i className="ri-delete-bin-line"></i>
-                            </button>
-                          )}
-                        </div>
+                      <td style={{ textAlign: 'center' }}>
+                        <ActionMenu actions={getRowActions(u)} />
                       </td>
                     </tr>
                   );
@@ -372,7 +465,7 @@ const Users = () => {
                   <i className="ri-user-line" style={{ marginRight: '6px' }}></i>
                   Activity for {selectedUser.username}
                 </div>
-                <div className="modal-subtitle">{selectedUser.email} · Role: {selectedUser.role}</div>
+                <div className="modal-subtitle">{selectedUser.email} &mdash; Role: {selectedUser.role}</div>
               </div>
               <button className="modal-close-btn" onClick={() => setSelectedUser(null)}>
                 <i className="ri-close-line"></i>
@@ -447,6 +540,17 @@ const Users = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete User Account?"
+        message={`Are you sure you want to delete user "${deleteTarget?.username}" (${deleteTarget?.email})? All associated audit records will remain intact.`}
+        confirmLabel="Delete User"
+        danger
+        loading={isDeleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteUser}
+      />
     </div>
   );
 };

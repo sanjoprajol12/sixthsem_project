@@ -23,10 +23,25 @@ const supplierSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active',
+    index: true
+  },
   created_at: {
     type: Date,
     default: Date.now
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now
   }
+});
+
+supplierSchema.pre('save', function (next) {
+  this.updated_at = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Supplier', supplierSchema);

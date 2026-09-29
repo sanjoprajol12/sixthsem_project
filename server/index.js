@@ -32,6 +32,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/algorithms', require('./routes/algorithms'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Centralized error handler
 app.use((err, req, res, next) => {

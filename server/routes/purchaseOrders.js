@@ -314,41 +314,70 @@ router.put('/:id/cancel', authenticateToken, canManageInventory, async (req, res
   }
 });
 
-// Legacy status update compatibility
+// Status update compatibility
 router.put('/:id/status', authenticateToken, canManageInventory, async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await PurchaseOrder.findById(req.params.id).populate('items.product_id');
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
 
+    const order = await PurchaseOrder.findById(req.params.id).populate('items.product_id');
     if (!order) {
       return res.status(404).json({ error: 'Purchase order not found' });
     }
 
     if (status === 'received') {
-      // If legacy calls set status='received', receive all remaining unreceived items
+      if (order.status === 'received' || order.status === 'closed') {
+        return res.json({ message: 'Purchase order is already received', order });
+      }
+
+      // Calculate items that still need receiving
       const itemsToReceive = order.items.map((it) => ({
         itemId: it._id.toString(),
         quantityReceived: it.quantity - (it.received_quantity || 0)
       })).filter((it) => it.quantityReceived > 0);
 
-      if (itemsToReceive.length > 0) {
+      const canReceiveStock = ['submitted', 'approved', 'ordered', 'partially_received', 'pending', 'processing'].includes(order.status);
+      if (itemsToReceive.length > 0 && canReceiveStock) {
         await InventoryService.receivePurchaseOrder({
           purchaseOrderId: order._id,
           itemsReceived: itemsToReceive,
           userId: req.user.id,
-          notes: 'Received via legacy status update',
+          notes: 'Received via status update',
           req
         });
+      } else {
+        order.status = 'received';
+        order.received_at = new Date();
+        await order.save();
       }
+    } else if (status === 'cancelled') {
+      if (['received', 'closed', 'partially_received'].includes(order.status)) {
+        return res.status(400).json({ error: `Cannot cancel an order that has status "${order.status}"` });
+      }
+      order.status = 'cancelled';
+      await order.save();
+
+      await AuditService.log({
+        userId: req.user.id,
+        username: req.user.username,
+        action: 'PO_CANCEL',
+        entity: 'PurchaseOrder',
+        entityId: order._id,
+        details: { order_number: order.order_number },
+        req
+      });
     } else {
       order.status = status;
       await order.save();
     }
 
-    res.json({ message: 'Purchase order status updated successfully' });
+    const updated = await PurchaseOrder.findById(order._id);
+    res.json({ message: `Purchase order status updated to ${status}`, order: updated });
   } catch (error) {
     console.error('Update PO status error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || 'Error updating purchase order status' });
   }
 });
 

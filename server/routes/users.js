@@ -126,7 +126,9 @@ router.put('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
     }
 
     // Protect super admin role modifications
-    if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
+    const targetIsSuper = (user.role || '').toLowerCase().replace(/[\s-]+/g, '_') === 'super_admin';
+    const requesterIsSuper = (req.user.role || '').toLowerCase().replace(/[\s-]+/g, '_') === 'super_admin';
+    if (targetIsSuper && !requesterIsSuper) {
       return res.status(403).json({ error: 'Only Super Admins can modify Super Admin accounts' });
     }
 
@@ -173,7 +175,11 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.role === 'super_admin') {
+    if (user._id.toString() === req.user.id.toString()) {
+      return res.status(400).json({ error: 'You cannot change the status of your own account' });
+    }
+
+    if (user.role === 'super_admin' && status === 'disabled') {
       return res.status(400).json({ error: 'Cannot disable Super Admin account' });
     }
 

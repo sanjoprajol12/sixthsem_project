@@ -27,7 +27,8 @@ const Damages = () => {
     remark: ''
   });
 
-  const canManage = ['super_admin', 'admin', 'inventory_manager'].includes(user?.role);
+  const userRole = (user?.role || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const canManage = ['super_admin', 'superadmin', 'admin', 'inventory_manager'].includes(userRole);
 
   const fetchDamages = useCallback(async () => {
     try {
@@ -89,6 +90,15 @@ const Damages = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="table-loading" style={{ minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <div className="loading-spinner" />
+        <span style={{ color: 'var(--gray-500)', fontSize: '14px' }}>Loading damage records...</span>
+      </div>
+    );
+  }
+
   if (!canManage) {
     return (
       <div>
@@ -96,8 +106,8 @@ const Damages = () => {
           <h1>Damage & Loss</h1>
         </div>
         <div className="alert alert-warning">
-          <span className="alert-icon">⚠️</span>
-          You do not have permission to view or manage damage records.
+          <span className="alert-icon"><i className="ri-error-warning-line" /></span>
+          You do not have permission to view or manage damage records. (Logged in as: {user?.role || 'Guest'})
         </div>
       </div>
     );
@@ -115,7 +125,7 @@ const Damages = () => {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            ➕ Record Damage
+            <i className="ri-add-line" /> Record Damage
           </button>
         </div>
       </div>
@@ -148,7 +158,7 @@ const Damages = () => {
           <div className="loading-screen"><div className="spinner" /></div>
         ) : damages.length === 0 ? (
           <div className="table-empty">
-            <span className="table-empty-icon">🛡️</span>
+            <span className="table-empty-icon"><i className="ri-shield-check-line" style={{ fontSize: '32px', color: '#9CA3AF' }} /></span>
             <div className="table-empty-text">No damage or loss incidents recorded</div>
           </div>
         ) : (
@@ -201,8 +211,8 @@ const Damages = () => {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal modal-md">
             <div className="modal-header">
-              <div className="modal-title">🔴 Record Damage / Loss</div>
-              <button className="modal-close-btn" onClick={() => setShowModal(false)}>✕</button>
+              <div className="modal-title"><i className="ri-error-warning-line" style={{ color: '#DC2626', marginRight: '6px' }} /> Record Damage / Loss</div>
+              <button className="modal-close-btn" onClick={() => setShowModal(false)}><i className="ri-close-line" /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -261,7 +271,7 @@ const Damages = () => {
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" style={{ background: '#DC2626', borderColor: '#DC2626' }}>
-                  ✔ Record Damage & Deduct Stock
+                  <i className="ri-check-line" /> Record Damage & Deduct Stock
                 </button>
               </div>
             </form>

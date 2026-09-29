@@ -63,7 +63,7 @@ const AuditLogs = () => {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-outline btn-sm" onClick={fetchLogs}>
-            🔄 Refresh
+            <i className="ri-refresh-line" /> Refresh
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ const AuditLogs = () => {
             </select>
 
             <div className="table-search">
-              <span className="table-search-icon">🔍</span>
+              <span className="table-search-icon"><i className="ri-search-line" /></span>
               <input
                 type="text"
                 placeholder="Filter by username..."
@@ -106,7 +106,7 @@ const AuditLogs = () => {
           <div className="loading-screen"><div className="spinner" /></div>
         ) : logs.length === 0 ? (
           <div className="table-empty">
-            <span className="table-empty-icon">🔍</span>
+            <span className="table-empty-icon"><i className="ri-shield-keyhole-line" style={{ fontSize: '32px', color: '#9CA3AF' }} /></span>
             <div className="table-empty-text">No audit logs matching criteria</div>
           </div>
         ) : (
@@ -165,8 +165,8 @@ const AuditLogs = () => {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSelectedLog(null)}>
           <div className="modal modal-md">
             <div className="modal-header">
-              <div className="modal-title">🔍 Audit Event Details</div>
-              <button className="modal-close-btn" onClick={() => setSelectedLog(null)}>✕</button>
+              <div className="modal-title"><i className="ri-shield-keyhole-line" style={{ marginRight: '6px', color: 'var(--primary)' }} /> Audit Event Details</div>
+              <button className="modal-close-btn" onClick={() => setSelectedLog(null)}><i className="ri-close-line" /></button>
             </div>
             <div className="modal-body">
               <div style={{ marginBottom: '12px', fontSize: '13px' }}>

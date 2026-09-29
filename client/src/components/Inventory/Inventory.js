@@ -7,12 +7,12 @@ const fmtCurrency = (v) => `NPR ${(Number(v) || 0).toLocaleString('en-IN')}`;
 
 const TX_TYPES = [
   { value: 'all', label: 'All Transactions' },
-  { value: 'PURCHASE_RECEIVE', label: '🛒 Purchase Receive' },
-  { value: 'SALE_DEDUCT', label: '🧾 Sale Deduct' },
-  { value: 'SALE_RETURN', label: '↩️ Customer Return' },
-  { value: 'DAMAGE', label: '🔴 Damage / Loss' },
-  { value: 'ADJUSTMENT_IN', label: '➕ Stock In Adjustment' },
-  { value: 'ADJUSTMENT_OUT', label: '➖ Stock Out Adjustment' }
+  { value: 'PURCHASE_RECEIVE', label: 'Purchase Receive' },
+  { value: 'SALE_DEDUCT', label: 'Sale Deduct' },
+  { value: 'SALE_RETURN', label: 'Customer Return' },
+  { value: 'DAMAGE', label: 'Damage / Loss' },
+  { value: 'ADJUSTMENT_IN', label: 'Stock In Adjustment' },
+  { value: 'ADJUSTMENT_OUT', label: 'Stock Out Adjustment' }
 ];
 
 const TX_BADGE_META = {
@@ -169,17 +169,17 @@ const Inventory = () => {
         <div className="page-header-actions">
           {tab === 'reconciliation' && (
             <button className="btn btn-primary btn-sm" onClick={openReconcileModal}>
-              ➕ New Stock Count
+              <i className="ri-add-circle-line" /> New Stock Count
             </button>
           )}
           {tab === 'valuation' && (
             <button className="btn btn-outline btn-sm" onClick={fetchValuation}>
-              🔄 Recalculate
+              <i className="ri-refresh-line" /> Recalculate
             </button>
           )}
           {tab === 'ledger' && (
             <button className="btn btn-outline btn-sm" onClick={fetchLedger}>
-              🔄 Refresh
+              <i className="ri-refresh-line" /> Refresh
             </button>
           )}
         </div>
@@ -191,19 +191,19 @@ const Inventory = () => {
           className={tab === 'ledger' ? 'active' : ''}
           onClick={() => setTab('ledger')}
         >
-          📜 Transaction Ledger
+          <i className="ri-file-list-3-line" /> Transaction Ledger
         </button>
         <button
           className={tab === 'valuation' ? 'active' : ''}
           onClick={() => setTab('valuation')}
         >
-          💰 Inventory Valuation
+          <i className="ri-money-dollar-circle-line" /> Inventory Valuation
         </button>
         <button
           className={tab === 'reconciliation' ? 'active' : ''}
           onClick={() => setTab('reconciliation')}
         >
-          ⚖️ Physical Reconciliation
+          <i className="ri-scales-line" /> Physical Reconciliation
         </button>
       </div>
 
@@ -246,7 +246,7 @@ const Inventory = () => {
             <div className="loading-screen"><div className="spinner" /></div>
           ) : ledger.length === 0 ? (
             <div className="table-empty">
-              <span className="table-empty-icon">📜</span>
+              <i className="ri-file-list-3-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
               <div className="table-empty-text">No ledger transactions found</div>
               <div className="table-empty-sub">Stock movements from purchases, sales, and adjustments appear here</div>
             </div>
@@ -356,7 +356,7 @@ const Inventory = () => {
               <div className="loading-screen"><div className="spinner" /></div>
             ) : !valuationData?.items?.length ? (
               <div className="table-empty">
-                <span className="table-empty-icon">💰</span>
+                <i className="ri-money-dollar-circle-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
                 <div className="table-empty-text">No inventory valuation data available</div>
               </div>
             ) : (
@@ -402,7 +402,7 @@ const Inventory = () => {
           <div className="table-toolbar">
             <span style={{ fontWeight: 600, fontSize: '15px' }}>Stock Adjustment History</span>
             <button className="btn btn-primary btn-sm" onClick={openReconcileModal}>
-              ➕ New Stock Count Reconciliation
+              <i className="ri-add-circle-line" /> New Stock Count Reconciliation
             </button>
           </div>
 
@@ -410,7 +410,7 @@ const Inventory = () => {
             <div className="loading-screen"><div className="spinner" /></div>
           ) : adjustments.length === 0 ? (
             <div className="table-empty">
-              <span className="table-empty-icon">⚖️</span>
+              <i className="ri-scales-line" style={{ fontSize: '28px', color: 'var(--gray-300)' }} />
               <div className="table-empty-text">No physical count adjustments recorded</div>
               <div className="table-empty-sub">Reconcile differences between your warehouse shelf counts and system counts</div>
             </div>
@@ -462,10 +462,10 @@ const Inventory = () => {
           <div className="modal modal-lg">
             <div className="modal-header">
               <div>
-                <div className="modal-title">⚖️ Physical Inventory Count Reconciliation</div>
+                <div className="modal-title"><i className="ri-scales-line" /> Physical Inventory Count Reconciliation</div>
                 <div className="modal-subtitle">Enter actual shelf counts to compute variances and update stock</div>
               </div>
-              <button className="modal-close-btn" onClick={() => setShowAdjustModal(false)}>✕</button>
+              <button className="modal-close-btn" onClick={() => setShowAdjustModal(false)}><i className="ri-close-line" /></button>
             </div>
             <div className="modal-body">
               <div className="form-grid mb-3">
@@ -543,7 +543,7 @@ const Inventory = () => {
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setShowAdjustModal(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleApplyReconciliation}>
-                ✔ Post Variance Adjustments
+                Post Variance Adjustments
               </button>
             </div>
           </div>
