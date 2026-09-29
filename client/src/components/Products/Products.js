@@ -1714,4 +1714,5 @@ const Products = () => {
   );
 };
 
+export { QuickSaleModal, QuickPurchaseModal, ViewProductModal };
 export default Products;

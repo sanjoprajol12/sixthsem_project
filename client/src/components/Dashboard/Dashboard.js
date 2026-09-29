@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import BarcodeScanner from '../Products/BarcodeScanner';
 import BarcodeGenerator from '../Products/BarcodeGenerator';
+import { QuickSaleModal, QuickPurchaseModal } from '../Products/Products';
 
 const fmtCurrency = (v) => `NPR ${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -42,6 +43,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState(null);
+  const [saleModalProduct, setSaleModalProduct] = useState(null);
+  const [purchaseModalProduct, setPurchaseModalProduct] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
   const navigate = useNavigate();
 
   const handleBarcodeScanned = async (scannedCode) => {
@@ -56,6 +60,12 @@ const Dashboard = () => {
       toast.error(err.response?.data?.error || `No product found for barcode "${scannedCode}"`);
     }
   };
+
+  useEffect(() => {
+    axios.get('/api/suppliers')
+      .then(res => setSuppliers(Array.isArray(res.data) ? res.data : res.data?.suppliers || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchAll();
@@ -519,8 +529,9 @@ const Dashboard = () => {
                       borderColor: '#059669'
                     }}
                     onClick={() => {
+                      const p = scannedProduct;
                       setScannedProduct(null);
-                      navigate('/sales-orders');
+                      setSaleModalProduct(p);
                     }}
                   >
                     <i className="ri-shopping-cart-line" /> New Sale
@@ -536,8 +547,9 @@ const Dashboard = () => {
                       gap: '6px'
                     }}
                     onClick={() => {
+                      const p = scannedProduct;
                       setScannedProduct(null);
-                      navigate('/purchase-orders');
+                      setPurchaseModalProduct(p);
                     }}
                   >
                     <i className="ri-truck-line" /> New Purchase
@@ -618,22 +630,71 @@ const Dashboard = () => {
               </div>
 
               <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => {
-                    setScannedProduct(null);
-                    navigate(`/products?search=${encodeURIComponent(scannedProduct.sku)}`);
-                  }}
-                >
-                  <i className="ri-box-3-line" /> View in Products Catalog
-                </button>
-                <button className="btn btn-outline btn-sm" onClick={() => setScannedProduct(null)}>Close</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ background: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => {
+                      const p = scannedProduct;
+                      setScannedProduct(null);
+                      setSaleModalProduct(p);
+                    }}
+                  >
+                    <i className="ri-shopping-cart-line" /> New Sale
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => {
+                      const p = scannedProduct;
+                      setScannedProduct(null);
+                      setPurchaseModalProduct(p);
+                    }}
+                  >
+                    <i className="ri-truck-line" /> New Purchase
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      setScannedProduct(null);
+                      navigate(`/products?search=${encodeURIComponent(scannedProduct.sku)}`);
+                    }}
+                  >
+                    <i className="ri-box-3-line" /> View in Products
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => setScannedProduct(null)}>Close</button>
+                </div>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {/* Quick Sale Modal from Barcode Scanner */}
+      {saleModalProduct && (
+        <QuickSaleModal
+          open={!!saleModalProduct}
+          product={saleModalProduct}
+          onClose={() => setSaleModalProduct(null)}
+          onSaved={() => fetchAll()}
+        />
+      )}
+
+      {/* Quick Purchase Modal from Barcode Scanner */}
+      {purchaseModalProduct && (
+        <QuickPurchaseModal
+          open={!!purchaseModalProduct}
+          product={purchaseModalProduct}
+          suppliers={suppliers}
+          onClose={() => setPurchaseModalProduct(null)}
+          onSaved={() => fetchAll()}
+        />
+      )}
     </div>
   );
 };
