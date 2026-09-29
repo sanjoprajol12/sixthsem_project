@@ -1,17 +1,30 @@
+/* App.css - Only global shell layout */
 .App {
+  display: flex;
   min-height: 100vh;
 }
 
-.main-content {
-  margin-left: 250px;
-  padding: 20px;
-  min-height: 100vh;
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 14px;
+  background: #0F172A;
+  color: #fff;
+  font-size: 15px;
 }
 
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    padding: 10px;
-  }
+.app-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #2563EB;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

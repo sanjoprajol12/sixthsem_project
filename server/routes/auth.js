@@ -4,24 +4,19 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { User } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
+const AuditService = require('../services/auditService');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set');
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'replace-with-a-long-random-secret';
 
 // Register
 router.post(
   '/register',
   [
-    body('username').notEmpty().withMessage('Username is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters'),
+    body('username').notEmpty().withMessage('Username is required').trim(),
+    body('email').isEmail().withMessage('Valid email is required').trim(),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
   ],
   async (req, res) => {
     try {
@@ -31,35 +26,51 @@ router.post(
         return res.status(400).json({ error: message });
       }
 
-      const { username, email, password } = req.body;
+      const { username, email, password, full_name, role = 'sales_staff' } = req.body;
 
-      // Check if user exists
       const existingUser = await User.findOne({
-        $or: [{ username }, { email }],
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
       });
 
       if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
+        return res.status(400).json({ error: 'User with this username or email already exists' });
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create user (always staff; admin is seeded) in pending status
+      // If there are zero users in the database, automatically make the first user super_admin
+      const userCount = await User.countDocuments();
+      const assignedRole = userCount === 0 ? 'super_admin' : (['sales_staff', 'purchase_staff', 'staff'].includes(role) ? role : 'sales_staff');
+      const assignedStatus = userCount === 0 ? 'active' : 'pending';
+
       const user = await User.create({
-        username,
-        email,
+        username: username.toLowerCase(),
+        email: email.toLowerCase(),
         password: hashedPassword,
-        role: 'staff',
-        status: 'pending',
+        full_name: full_name || '',
+        role: assignedRole,
+        status: assignedStatus
       });
 
-      res.status(201).json({
-        message: 'Registration successful. Your account is pending admin approval.',
+      await AuditService.log({
+        userId: user._id,
+        username: user.username,
+        action: 'USER_REGISTER',
+        entity: 'User',
+        entityId: user._id,
+        details: { role: user.role, status: user.status },
+        req
       });
+
+      const message =
+        assignedStatus === 'active'
+          ? 'Registration successful. You may now log in.'
+          : 'Registration successful. Your account is pending admin approval.';
+
+      res.status(201).json({ message, user: { id: user._id, username: user.username, role: user.role, status: user.status } });
     } catch (error) {
       console.error('Registration error:', error);
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ error: 'Server error during registration' });
     }
   }
 );
@@ -68,8 +79,8 @@ router.post(
 router.post(
   '/login',
   [
-    body('username').notEmpty().withMessage('Username is required'),
-    body('password').notEmpty().withMessage('Password is required'),
+    body('username').notEmpty().withMessage('Username or email is required').trim(),
+    body('password').notEmpty().withMessage('Password is required')
   ],
   async (req, res) => {
     try {
@@ -80,10 +91,10 @@ router.post(
       }
 
       const { username, password } = req.body;
+      const cleanUsername = username.toLowerCase();
 
-      // Find user by username or email
       const user = await User.findOne({
-        $or: [{ username }, { email: username }],
+        $or: [{ username: cleanUsername }, { email: cleanUsername }]
       });
 
       if (!user) {
@@ -96,11 +107,11 @@ router.post(
       }
 
       if (user.status === 'pending') {
-        return res.status(403).json({ error: 'Account pending approval by admin' });
+        return res.status(403).json({ error: 'Account pending approval by administrator' });
       }
 
       if (user.status === 'disabled') {
-        return res.status(403).json({ error: 'Account is disabled. Contact admin.' });
+        return res.status(403).json({ error: 'Your account is disabled. Please contact administrator.' });
       }
 
       const token = jwt.sign(
@@ -109,10 +120,21 @@ router.post(
           username: user.username,
           email: user.email,
           role: user.role,
+          full_name: user.full_name || user.username
         },
         JWT_SECRET,
         { expiresIn: '24h' }
       );
+
+      await AuditService.log({
+        userId: user._id,
+        username: user.username,
+        action: 'USER_LOGIN',
+        entity: 'User',
+        entityId: user._id,
+        details: { role: user.role },
+        req
+      });
 
       res.json({
         message: 'Login successful',
@@ -121,20 +143,28 @@ router.post(
           id: user._id.toString(),
           username: user.username,
           email: user.email,
-          role: user.role,
-        },
+          full_name: user.full_name || user.username,
+          role: user.role
+        }
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ error: 'Server error during login' });
     }
   }
 );
 
-// Get current user
-router.get('/me', authenticateToken, (req, res) => {
-  res.json({ user: req.user });
+// Get current user profile
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching user profile' });
+  }
 });
 
 module.exports = router;
-

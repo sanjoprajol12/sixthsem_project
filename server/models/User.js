@@ -18,11 +18,28 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  full_name: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  phone: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   role: {
     type: String,
     required: true,
-    default: 'staff',
-    enum: ['admin', 'staff'],
+    default: 'sales_staff',
+    enum: [
+      'super_admin',
+      'admin',
+      'inventory_manager',
+      'sales_staff',
+      'purchase_staff',
+      'staff' // legacy compatibility
+    ],
   },
   status: {
     type: String,
@@ -34,8 +51,15 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updated_at: {
+    type: Date,
+    default: Date.now,
+  }
+});
+
+userSchema.pre('save', function (next) {
+  this.updated_at = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('User', userSchema);
-
-

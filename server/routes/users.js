@@ -4,10 +4,21 @@ const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const AuditService = require('../services/auditService');
 
 const router = express.Router();
 
-// Get all users (admin only)
+// Allowed roles in the system
+const VALID_ROLES = [
+  'super_admin',
+  'admin',
+  'inventory_manager',
+  'sales_staff',
+  'purchase_staff',
+  'staff'
+];
+
+// Get all users (Admin & Super Admin)
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().sort({ created_at: -1 });
@@ -16,9 +27,11 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
         id: u._id,
         username: u.username,
         email: u.email,
+        full_name: u.full_name || '',
+        phone: u.phone || '',
         role: u.role,
         status: u.status,
-        created_at: u.created_at,
+        created_at: u.created_at
       }))
     );
   } catch (error) {
@@ -27,15 +40,16 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Create staff user (admin only)
+// Create new user with specific role (Admin only)
 router.post(
   '/',
   authenticateToken,
   requireAdmin,
   [
-    body('username').notEmpty().withMessage('Username is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
+    body('username').notEmpty().withMessage('Username is required').trim(),
+    body('email').isEmail().withMessage('Valid email is required').trim(),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('role').isIn(VALID_ROLES).withMessage('Invalid role specified')
   ],
   async (req, res) => {
     try {
@@ -45,11 +59,12 @@ router.post(
         return res.status(400).json({ error: message });
       }
 
-      const { username, email, password } = req.body;
+      const { username, email, password, role, full_name, phone, status = 'active' } = req.body;
 
       const existing = await User.findOne({
-        $or: [{ username }, { email }],
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
       });
+
       if (existing) {
         return res.status(400).json({ error: 'User with that username or email already exists' });
       }
@@ -57,20 +72,34 @@ router.post(
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const user = await User.create({
-        username,
-        email,
+        username: username.toLowerCase(),
+        email: email.toLowerCase(),
         password: hashedPassword,
-        role: 'staff',
-        status: 'active',
+        full_name: full_name || '',
+        phone: phone || '',
+        role,
+        status
+      });
+
+      await AuditService.log({
+        userId: req.user.id,
+        username: req.user.username,
+        action: 'USER_CREATE',
+        entity: 'User',
+        entityId: user._id,
+        details: { username: user.username, role: user.role },
+        req
       });
 
       res.status(201).json({
         id: user._id,
         username: user.username,
         email: user.email,
+        full_name: user.full_name,
         role: user.role,
         status: user.status,
         created_at: user.created_at,
+        message: 'User created successfully'
       });
     } catch (error) {
       console.error('Create user error:', error);
@@ -79,16 +108,12 @@ router.post(
   }
 );
 
-// Update user role (admin only) - only allow changing staff roles; no new admins
+// Update user role
 router.put('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { role } = req.body;
-    if (!['admin', 'staff'].includes(role)) {
+    if (!VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
-    }
-
-    if (role === 'admin') {
-      return res.status(400).json({ error: 'Creating additional admins is not allowed' });
     }
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -96,26 +121,34 @@ router.put('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
     }
 
     const user = await User.findById(req.params.id);
-
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.role === 'admin') {
-      return res.status(400).json({ error: 'Changing admin role is not allowed' });
+    // Protect super admin role modifications
+    if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Only Super Admins can modify Super Admin accounts' });
     }
 
     user.role = role;
-    user.updated_at = Date.now();
     await user.save();
+
+    await AuditService.log({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_ROLE_CHANGE',
+      entity: 'User',
+      entityId: user._id,
+      details: { username: user.username, new_role: role },
+      req
+    });
 
     res.json({
       id: user._id,
       username: user.username,
-      email: user.email,
       role: user.role,
       status: user.status,
-      created_at: user.created_at,
+      message: `User role updated to ${role}`
     });
   } catch (error) {
     console.error('Update user role error:', error);
@@ -123,7 +156,7 @@ router.put('/:id/role', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Update user status (admin only)
+// Update user status (active, disabled, pending)
 router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
@@ -140,21 +173,28 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.role === 'admin') {
-      return res.status(400).json({ error: 'Changing admin status is not allowed' });
+    if (user.role === 'super_admin') {
+      return res.status(400).json({ error: 'Cannot disable Super Admin account' });
     }
 
     user.status = status;
-    user.updated_at = Date.now();
     await user.save();
+
+    await AuditService.log({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_STATUS_CHANGE',
+      entity: 'User',
+      entityId: user._id,
+      details: { username: user.username, new_status: status },
+      req
+    });
 
     res.json({
       id: user._id,
       username: user.username,
-      email: user.email,
-      role: user.role,
       status: user.status,
-      created_at: user.created_at,
+      message: `User status changed to ${status}`
     });
   } catch (error) {
     console.error('Update user status error:', error);
@@ -162,48 +202,7 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Change current user's password
-router.put(
-  '/me/password',
-  authenticateToken,
-  [
-    body('currentPassword').notEmpty().withMessage('Current password is required'),
-    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        const message = errors.array().map((e) => e.msg).join(', ');
-        return res.status(400).json({ error: message });
-      }
-
-      const { currentPassword, newPassword } = req.body;
-
-      const user = await User.findById(req.user.id);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ error: 'Current password is incorrect' });
-      }
-
-      const hashed = await bcrypt.hash(newPassword, 10);
-      user.password = hashed;
-      user.updated_at = Date.now();
-      await user.save();
-
-      res.json({ message: 'Password updated successfully' });
-    } catch (error) {
-      console.error('Change own password error:', error);
-      res.status(500).json({ error: 'Error updating password' });
-    }
-  }
-);
-
-// Admin change any staff password
+// Admin change user password
 router.put(
   '/:id/password',
   authenticateToken,
@@ -228,18 +227,27 @@ router.put(
 
       const hashed = await bcrypt.hash(req.body.newPassword, 10);
       user.password = hashed;
-      user.updated_at = Date.now();
       await user.save();
+
+      await AuditService.log({
+        userId: req.user.id,
+        username: req.user.username,
+        action: 'USER_PASSWORD_RESET',
+        entity: 'User',
+        entityId: user._id,
+        details: { username: user.username },
+        req
+      });
 
       res.json({ message: 'Password updated successfully' });
     } catch (error) {
-      console.error('Admin change user password error:', error);
+      console.error('Admin change password error:', error);
       res.status(500).json({ error: 'Error updating password' });
     }
   }
 );
 
-// Delete user (admin only)
+// Delete user (Admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -251,15 +259,25 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Prevent deleting the last admin
-    if (user.role === 'admin') {
-      const adminCount = await User.countDocuments({ role: 'admin' });
-      if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Cannot delete the last admin user' });
-      }
+    if (user.role === 'super_admin') {
+      return res.status(400).json({ error: 'Cannot delete Super Admin account' });
+    }
+
+    if (user._id.toString() === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
     }
 
     await User.findByIdAndDelete(req.params.id);
+
+    await AuditService.log({
+      userId: req.user.id,
+      username: req.user.username,
+      action: 'USER_DELETE',
+      entity: 'User',
+      entityId: req.params.id,
+      details: { username: user.username },
+      req
+    });
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -269,4 +287,3 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
-

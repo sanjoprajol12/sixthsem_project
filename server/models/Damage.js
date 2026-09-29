@@ -4,18 +4,48 @@ const damageSchema = new mongoose.Schema({
   product_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
-    required: true
+    required: true,
+    index: true
   },
   quantity: {
     type: Number,
     required: true,
     min: 1
   },
+  damage_type: {
+    type: String,
+    enum: [
+      'Broken / Transit Damage',
+      'Expired Shelf Life',
+      'Defective / Manufacturing Fault',
+      'Water / Moisture Damage',
+      'Infestation / Contamination',
+      'Other'
+    ],
+    default: 'Broken / Transit Damage'
+  },
   remark: {
     type: String,
     trim: true,
     default: ''
   },
+  unit_cost: {
+    type: Number,
+    default: 0
+  },
+  total_loss: {
+    type: Number,
+    default: 0
+  },
+  location_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Location'
+  },
+  recorded_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  // Keep deleted_by for backwards compatibility
   deleted_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -32,9 +62,9 @@ const damageSchema = new mongoose.Schema({
   },
   created_at: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   }
 });
 
 module.exports = mongoose.model('Damage', damageSchema);
-
